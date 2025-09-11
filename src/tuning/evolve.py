@@ -1,6 +1,7 @@
 # src/tuning/evolve.py
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple
@@ -8,35 +9,43 @@ from typing import Callable, Dict, List, Tuple
 import numpy as np
 
 from src.backtest.engine import ATRParams, backtest_atr_breakout
-import math
 
-_rng = random.random
+# Add train/valid utilities
+from datetime import datetime, timedelta
+
+# ----------------------------
+# Utilities
+# ----------------------------
 
 def _clamp(v, lo, hi):
     return lo if v < lo else hi if v > hi else v
 
 def _blend(a, b, alpha=0.5):
-    # BLX/BLEND crossover for floats
+    """BLX/BLEND crossover for floats."""
     lo, hi = (a, b) if a <= b else (b, a)
-    range_ = hi - lo
-    lo -= alpha * range_
-    hi += alpha * range_
+    rng = hi - lo
+    lo -= alpha * rng
+    hi += alpha * rng
     return random.uniform(lo, hi)
 
-def _tournament_select(pop, fits, k=3):
-    # fits[i][0] must be the scalar fitness
-    idxs = [random.randrange(len(pop)) for _ in range(k)]
+def _tournament_select(pop: List[Dict], fits: List[Tuple[float, Dict]], k: int = 3) -> Dict:
+    """Tournament selection; fits[i][0] is scalar fitness."""
+    idxs = [random.randrange(len(pop)) for _ in range(max(1, k))]
     best = max(idxs, key=lambda i: fits[i][0])
     return pop[best]
 
-def _sig_from_range(lo, hi, frac=0.12):
-    # Gaussian step ~12% of the range by default
+def _sig_from_range(lo, hi, frac: float = 0.12):
+    """Gaussian step ~12% of the range by default."""
     return max(1e-9, (hi - lo) * frac)
 
-def _log_mut(val, lo, hi, sigma=0.25):
-    # multiplicative/log-space mutation for positive floats
+def _log_mut(val: float, lo: float, hi: float, sigma: float = 0.25):
+    """Multiplicative/log-space mutation for positive floats."""
     nv = val * math.exp(random.gauss(0.0, sigma))
     return _clamp(nv, lo, hi)
+
+# ----------------------------
+# Bounds for EA
+# ----------------------------
 
 @dataclass
 class Bounds:
@@ -53,7 +62,7 @@ class Bounds:
     atr_multiple_max: float = 5.0
     risk_per_trade_min: float = 0.002    # 0.2%
     risk_per_trade_max: float = 0.02     # 2.0%
-    tp_multiple_min: float = 0.0         # 0 => disabled is allowed
+    tp_multiple_min: float = 0.0         # 0 => disabled allowed
     tp_multiple_max: float = 6.0
 
     # Trend filter
@@ -81,16 +90,18 @@ class Bounds:
     crossover_rate: float = 0.7
     mutation_rate: float = 0.35
 
+# ----------------------------
+# Repair & random individual
+# ----------------------------
 
 def _clip_int(x: int, lo: int, hi: int) -> int:
     return int(min(max(x, lo), hi))
 
-
 def _clip_float(x: float, lo: float, hi: float) -> float:
     return float(min(max(x, lo), hi))
 
-
 def _fix(ind: Dict, b: Bounds) -> Dict:
+    """Repair an individual to satisfy constraints and ordered relationships."""
     y = dict(ind)
     # Core windows
     y["breakout_n"] = _clip_int(int(y.get("breakout_n", 55)), b.breakout_min, b.breakout_max)
@@ -120,8 +131,8 @@ def _fix(ind: Dict, b: Bounds) -> Dict:
 
     return y
 
-
 def _rand(b: Bounds, rng: random.Random) -> Dict:
+    """Random individual within bounds, then repaired."""
     ind = {
         "breakout_n": rng.randint(b.breakout_min, b.breakout_max),
         "exit_n": rng.randint(b.exit_min, b.exit_max),
@@ -142,6 +153,9 @@ def _rand(b: Bounds, rng: random.Random) -> Dict:
     }
     return _fix(ind, b)
 
+# ----------------------------
+# GA ops: mutate / crossover
+# ----------------------------
 
 def _mutate(ind: Dict, b: Bounds, rng: random.Random) -> Dict:
     out = dict(ind)
@@ -193,11 +207,11 @@ def _mutate(ind: Dict, b: Bounds, rng: random.Random) -> Dict:
 
     return _fix(out, b)
 
-
 def _xover(a: Dict, b_: Dict, rng: random.Random, bounds: Bounds) -> Dict:
+    """Two-parent crossover: ints coin-flip, floats blended, then repaired."""
     child = {}
     # integers: coin-flip inherit
-    for k in ["breakout_n","exit_n","atr_n","sma_fast","sma_slow","sma_long","long_slope_len","holding_period_limit"]:
+    for k in ["breakout_n", "exit_n", "atr_n", "sma_fast", "sma_slow", "sma_long", "long_slope_len", "holding_period_limit"]:
         child[k] = a[k] if rng.random() < 0.5 else b_[k]
     # floats: blend around parents with bounds
     child["atr_multiple"]   = _clamp(_blend(a["atr_multiple"],   b_["atr_multiple"],   alpha=0.2), bounds.atr_multiple_min, bounds.atr_multiple_max)
@@ -208,8 +222,37 @@ def _xover(a: Dict, b_: Dict, rng: random.Random, bounds: Bounds) -> Dict:
     child["use_trend_filter"] = a["use_trend_filter"] if rng.random() < 0.5 else b_["use_trend_filter"]
     return _fix(child, bounds)
 
+# ----------------------------
+# Utilities for date splitting
+# ----------------------------
 
-def _fitness(symbol: str, start: str, end: str, starting_equity: float, ind: Dict) -> Tuple[float, Dict]:
+def _split_dates(start_iso: str, end_iso: str, valid_frac: float = 0.30) -> Tuple[str, str, str]:
+    """Return (train_start, train_end, valid_end) as ISO strings, contiguous split.
+    Train = [start, train_end], Valid = (train_end, end]."""
+    s = datetime.fromisoformat(start_iso).date()
+    e = datetime.fromisoformat(end_iso).date()
+    if e <= s:
+        return start_iso, start_iso, end_iso
+    span_days = (e - s).days
+    cut = max(1, int((1.0 - valid_frac) * span_days))
+    mid = s + timedelta(days=cut)
+    return s.isoformat(), mid.isoformat(), e.isoformat()
+
+# ----------------------------
+# Fitness (with optional debug, Train/Valid aware)
+# ----------------------------
+
+def _fitness(
+    symbol: str,
+    start: str,
+    end: str,
+    starting_equity: float,
+    ind: Dict,
+    debug: bool = False,
+    use_validation: bool = True,
+) -> Tuple[float, Dict, Dict]:
+    """Compute scalar fitness; when `use_validation` is True, select by Validation metrics.
+    Returns (score, selected_metrics, debug_payload)."""
     # Map gene values into engine params
     tp_mult = None if ind.get("tp_multiple", 0.0) <= 0.0 else float(ind["tp_multiple"])
     hp_limit = None if int(ind.get("holding_period_limit", 0)) <= 0 else int(ind["holding_period_limit"])
@@ -232,19 +275,132 @@ def _fitness(symbol: str, start: str, end: str, starting_equity: float, ind: Dic
         long_slope_len=int(ind.get("long_slope_len", 15)),
         holding_period_limit=hp_limit,
     )
-    res = backtest_atr_breakout(symbol, start, end, float(starting_equity), params)
+
+    debug_payload: Dict = {}
+
+    if use_validation:
+        tr_start, tr_end, va_end = _split_dates(start, end, valid_frac=0.30)
+        # Train
+        try:
+            res_tr = backtest_atr_breakout(symbol, tr_start, tr_end, float(starting_equity), params, debug=debug)
+        except TypeError:
+            res_tr = backtest_atr_breakout(symbol, tr_start, tr_end, float(starting_equity), params)
+        # Valid
+        try:
+            res_va = backtest_atr_breakout(symbol, tr_end, va_end, float(starting_equity), params, debug=debug)
+        except TypeError:
+            res_va = backtest_atr_breakout(symbol, tr_end, va_end, float(starting_equity), params)
+
+        m_tr = res_tr.get("metrics", {})
+        m_va = res_va.get("metrics", {})
+
+        debug_payload = {
+            "tv": {"train": m_tr, "valid": m_va},
+            "debug_train": res_tr.get("debug", {}) if isinstance(res_tr, dict) else {},
+            "debug_valid": res_va.get("debug", {}) if isinstance(res_va, dict) else {},
+        }
+
+        # Use Validation to rank, with small Train regularization
+        sharpe_v = float(m_va.get("sharpe", 0.0) or 0.0)
+        cagr_v   = float(m_va.get("cagr", 0.0)   or 0.0)
+        tr_v     = float(m_va.get("total_return", 0.0) or 0.0)
+        dd_v     = float(m_va.get("max_drawdown", 0.0) or 0.0)  # negative
+        ddp_v    = max(0.0, -dd_v)
+        trades_v = int(m_va.get("trades", 0) or 0)
+
+        sharpe_t = float(m_tr.get("sharpe", 0.0) or 0.0)
+
+        # Mild regularizers to push away from pathological settings
+        tp_mult_val = float(ind.get("tp_multiple", 0.0) or 0.0)
+        exit_ratio  = (int(ind.get("exit_n", 1)) / max(1, int(ind.get("breakout_n", 1))))
+        penalty_small_tp   = 0.05 * max(0.0, 1.3 - tp_mult_val)   # prefer TP >= ~1.3 when TP is used
+        penalty_exit_ratio = 0.02 * max(0.0, exit_ratio - 0.80)   # discourage exit too close to breakout
+        penalty_few_trades = 0.10 if trades_v < 8 else 0.0        # avoid tiny-sample flukes
+
+        score = (
+            0.55 * sharpe_v +
+            0.25 * cagr_v +
+            0.10 * tr_v -
+            0.10 * ddp_v +
+            0.05 * max(0.0, min(sharpe_t, 2.0))  # small train anchoring
+        ) - (penalty_small_tp + penalty_exit_ratio + penalty_few_trades)
+
+        return score, m_va, debug_payload
+
+    # --- No validation: original single-run path ---
+    try:
+        res = backtest_atr_breakout(symbol, start, end, float(starting_equity), params, debug=debug)
+    except TypeError:
+        res = backtest_atr_breakout(symbol, start, end, float(starting_equity), params)
+    else:
+        if isinstance(res, dict):
+            debug_payload = res.get("debug", {}) or {}
+
     metrics = res["metrics"]
 
-    # Blend risk & return:
-    # score = 0.5*Sharpe + 0.4*TotalReturn - 0.1*DrawdownPenalty
     sharpe = float(metrics.get("sharpe", 0.0) or 0.0)
-    total_return = float(metrics.get("total_return", 0.0) or 0.0)  # e.g. 0.12 = +12%
-    max_dd = float(metrics.get("max_drawdown", 0.0) or 0.0)  # negative value
+    total_return = float(metrics.get("total_return", 0.0) or 0.0)
+    max_dd = float(metrics.get("max_drawdown", 0.0) or 0.0)
     dd_penalty = max(0.0, -max_dd)
 
     score = 0.5 * sharpe + 0.4 * total_return - 0.1 * dd_penalty
-    return score, metrics
+    return score, metrics, debug_payload
 
+def _print_debug(
+    gen: int,
+    symbol: str,
+    start: str,
+    end: str,
+    starting_equity: float,
+    ind: Dict,
+    metrics: Dict,
+    debug: Dict | None
+):
+    """Console-only triage; safe inside Streamlit (goes to server logs)."""
+    print("\n====== TUNER TRIAGE (gen #{}) ======".format(gen))
+    print(f"Symbol={symbol}  Window={start}→{end}  Equity={starting_equity:,.2f}")
+    if debug and (debug.get("tv") or debug.get("data") or debug.get("semantics")):
+        tv = debug.get("tv") or {}
+        if tv:
+            m_tr = tv.get("train", {})
+            m_va = tv.get("valid", {})
+            print("-- TRAIN --", f"Sharpe={m_tr.get('sharpe')}", f"TR={m_tr.get('total_return')}", f"DD={m_tr.get('max_drawdown')}", f"Trades={m_tr.get('trades')}")
+            print("-- VALID --", f"Sharpe={m_va.get('sharpe')}", f"TR={m_va.get('total_return')}", f"DD={m_va.get('max_drawdown')}", f"Trades={m_va.get('trades')}")
+        data = debug.get("data") or {}
+        sema = debug.get("semantics") or {}
+        indic = debug.get("indicators") or {}
+        sig = debug.get("signals") or {}
+        if data:
+            print("-- DATA --",
+                  f"source={data.get('source','?')} rows={data.get('rows','?')}",
+                  f"first={data.get('first','?')} last={data.get('last','?')}")
+        if sema:
+            print("-- SEMANTICS --",
+                  f"entry_next_open={sema.get('entry_next_open','?')}",
+                  f"stop_intra_ohlc={sema.get('stop_intra_ohlc','?')}",
+                  f"tp_intra_ohlc={sema.get('tp_intra_ohlc','?')}",
+                  f"fractional={sema.get('allow_fractional','?')}")
+        if indic:
+            atr_k = indic.get('atr_kind','?'); atr_n = indic.get('atr_n','?')
+            atr_s = indic.get('atr_sample', [])
+            print("-- INDICATORS --", f"ATR={atr_k} n={atr_n} sample={atr_s[:3]}")
+        if sig:
+            print("-- SIGNALS --", f"entries={sig.get('entries','?')} exits={sig.get('exits','?')}")
+    else:
+        print("(No debug payload from engine; showing metrics only)")
+
+    # Always show core metrics
+    sharpe = metrics.get("sharpe"); tr = metrics.get("total_return"); dd = metrics.get("max_drawdown")
+    trades = metrics.get("trades"); win = metrics.get("win_rate")
+    vol = metrics.get("volatility"); cagr = metrics.get("cagr")
+    print("-- METRICS --",
+          f"Sharpe={sharpe}", f"TR={tr}", f"DD={dd}", f"Trades={trades}", f"Win={win}", f"Vol={vol}", f"CAGR={cagr}")
+    print("-- PARAMS --", ind)
+    print("====== END TRIAGE ======\n")
+
+# ----------------------------
+# Main EA entrypoint
+# ----------------------------
 
 def evolve_params(
     symbol: str,
@@ -258,10 +414,11 @@ def evolve_params(
     mutation_rate: float | None = None,
     random_seed: int | None = 42,
     progress_cb: Callable[[int, int, float], None] | None = None,
+    debug_mode: bool = True,
 ) -> Tuple[Dict, Dict, List[Dict]]:
     """
     Evolves breakout/exit/atr/atr_multiple/risk_per_trade + tp_multiple + trend filter (optional) +
-    SMA windows + long slope + holding-period limit + cost_bps to maximize Sharpe.
+    SMA windows + long slope + holding-period limit + cost_bps to maximize a Sharpe/return/DD blend.
     Returns (best_params, best_metrics, history).
     """
     rng = random.Random(random_seed)
@@ -271,7 +428,7 @@ def evolve_params(
     crossover_rate = crossover_rate if crossover_rate is not None else bounds.crossover_rate
     mutation_rate = mutation_rate if mutation_rate is not None else bounds.mutation_rate
 
-    pop = [_rand(bounds, rng) for _ in range(pop_size)]
+    pop: List[Dict] = [_rand(bounds, rng) for _ in range(pop_size)]
 
     best_ind: Dict | None = None
     best_fit = -1e12
@@ -279,18 +436,26 @@ def evolve_params(
     history: List[Dict] = []
 
     for gen in range(generations):
-        scored = []
+        scored: List[Tuple[float, Dict, Dict, Dict]] = []
         for ind in pop:
-            f, m = _fitness(symbol, start, end, starting_equity, ind)
-            scored.append((f, ind, m))
+            f, m, dbg = _fitness(symbol, start, end, starting_equity, ind, debug=debug_mode, use_validation=True)
+            scored.append((f, ind, m, dbg))
 
+        # Sort by fitness desc
         scored.sort(key=lambda x: x[0], reverse=True)
-        gen_best_fit, gen_best_ind, gen_best_metrics = scored[0]
+        gen_best_fit, gen_best_ind, gen_best_metrics, gen_best_debug = scored[0]
 
+        prev_best = best_fit
         if gen_best_fit > best_fit:
             best_fit = gen_best_fit
             best_ind = dict(gen_best_ind)
             best_metrics = dict(gen_best_metrics)
+
+        if debug_mode and (gen == 0 or gen_best_fit > prev_best):
+            try:
+                _print_debug(gen, symbol, start, end, starting_equity, gen_best_ind, gen_best_metrics, gen_best_debug)
+            except Exception:
+                pass
 
         avg_fit = float(np.mean([s[0] for s in scored])) if scored else 0.0
         history.append({
@@ -303,19 +468,17 @@ def evolve_params(
         if progress_cb:
             progress_cb(gen + 1, generations, float(gen_best_fit))
 
-        # Next generation
-        keep = max(1, int(0.1 * pop_size))  # elitism
-        next_pop = [dict(scored[i][1]) for i in range(keep)]
+        # --- Next generation ---
+        elite_k = max(1, int(0.10 * pop_size))  # 10% elitism
+        next_pop: List[Dict] = [dict(scored[i][1]) for i in range(elite_k)]
 
-        def tournament() -> Dict:
-            k = 3
-            picks = rng.sample(scored[: max(pop_size, 3)], k=min(k, len(scored)))
-            picks.sort(key=lambda x: x[0], reverse=True)
-            return dict(picks[0][1])
+        # Tournament selection among top pool (keeps some pressure)
+        pool_pop = [s[1] for s in scored]
+        pool_fit = [(s[0], s[1]) for s in scored]
 
         while len(next_pop) < pop_size:
-            p1 = tournament()
-            p2 = tournament()
+            p1 = _tournament_select(pool_pop, [(s[0], s[1]) for s in scored], k=3)
+            p2 = _tournament_select(pool_pop, [(s[0], s[1]) for s in scored], k=3)
             child = dict(p1)
             if rng.random() < crossover_rate:
                 child = _xover(p1, p2, rng, bounds)

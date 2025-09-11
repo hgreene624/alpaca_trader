@@ -4,7 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="Auto bounds for initial model params BETA">
+    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tuning/evolve.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tuning/evolve.py" afterDir="false" />
     </list>
@@ -59,7 +59,7 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Evolve__V2&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
@@ -96,6 +96,7 @@
       <workItem from="1757515240338" duration="9662000" />
       <workItem from="1757526380162" duration="7046000" />
       <workItem from="1757550532581" duration="709000" />
+      <workItem from="1757560014779" duration="1131000" />
     </task>
     <task id="LOCAL-00001" summary="Working V1 framework. No evolution algo">
       <option name="closed" value="true" />
@@ -193,7 +194,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757557630611</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="random improvements to evolve not realy giving good results">
+      <option name="closed" value="true" />
+      <created>1757559567469</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1757559567469</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -220,6 +229,7 @@
     <MESSAGE value="&#10;- Checkbox to toggle risk-parity vs equal weights.&#10;- Compute weights from daily stddev of returns over sim range.&#10;- Keep per-ticker strategy selection + portfolio params fallback." />
     <MESSAGE value="individual ticker graphs in simulation results with buy and sell markers" />
     <MESSAGE value="Auto bounds for initial model params BETA" />
-    <option name="LAST_COMMIT_MESSAGE" value="Auto bounds for initial model params BETA" />
+    <MESSAGE value="random improvements to evolve not realy giving good results" />
+    <option name="LAST_COMMIT_MESSAGE" value="random improvements to evolve not realy giving good results" />
   </component>
 </project>
