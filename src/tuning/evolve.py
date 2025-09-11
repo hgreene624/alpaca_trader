@@ -7,11 +7,36 @@ from dataclasses import dataclass
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
+from datetime import datetime, timedelta
 
 from src.backtest.engine import ATRParams, backtest_atr_breakout
 
-# Add train/valid utilities
-from datetime import datetime, timedelta
+# ----------------------------
+# Self-adaptive GA/ES configuration
+# ----------------------------
+GENE_INTS   = ["breakout_n", "exit_n", "atr_n", "sma_fast", "sma_slow", "sma_long", "long_slope_len", "holding_period_limit"]
+GENE_FLOATS = ["atr_multiple", "risk_per_trade", "tp_multiple", "cost_bps"]
+GENE_LOG_FLOATS = ["atr_multiple", "risk_per_trade"]   # mutate multiplicatively
+GENE_ADD_FLOATS = ["tp_multiple", "cost_bps"]          # mutate additively
+
+# Mask toggle probabilities
+SA_P_ON  = 0.05   # chance to activate an inactive gene per mutation
+SA_P_OFF = 0.02   # chance to deactivate an active gene per mutation
+
+# Step-size bounds as fraction of ranges (for ints/additive floats)
+SA_STEP_MIN_FRAC = 0.02
+SA_STEP_MAX_FRAC = 0.35
+
+# Relative step-size for log-space floats (standard deviation in log domain)
+SA_LOGSTEP_MIN = 0.03
+SA_LOGSTEP_MAX = 0.35
+
+# Global self-adaptation noise applied to step sizes each mutation call
+SA_SIGMA_NOISE = 0.15
+
+# Validation trade count constraints
+MIN_VALIDATION_TRADES = 8        # hard minimum; reject individuals below this
+TARGET_VALIDATION_TRADES = 12    # soft target; scales score up to this count
 
 # ----------------------------
 # Utilities
@@ -42,6 +67,63 @@ def _log_mut(val: float, lo: float, hi: float, sigma: float = 0.25):
     """Multiplicative/log-space mutation for positive floats."""
     nv = val * math.exp(random.gauss(0.0, sigma))
     return _clamp(nv, lo, hi)
+
+# ----------------------------
+# Self-adaptive helpers
+# ----------------------------
+def _gene_ranges(b: 'Bounds') -> Dict[str, Tuple[float, float]]:
+    return {
+        # ints
+        "breakout_n": (b.breakout_min, b.breakout_max),
+        "exit_n": (b.exit_min, b.exit_max),
+        "atr_n": (b.atr_min, b.atr_max),
+        "sma_fast": (b.sma_fast_min, b.sma_fast_max),
+        "sma_slow": (b.sma_slow_min, b.sma_slow_max),
+        "sma_long": (b.sma_long_min, b.sma_long_max),
+        "long_slope_len": (b.long_slope_len_min, b.long_slope_len_max),
+        "holding_period_limit": (b.holding_period_min, b.holding_period_max),
+        # floats
+        "atr_multiple": (b.atr_multiple_min, b.atr_multiple_max),
+        "risk_per_trade": (b.risk_per_trade_min, b.risk_per_trade_max),
+        "tp_multiple": (b.tp_multiple_min, b.tp_multiple_max),
+        "cost_bps": (b.cost_bps_min, b.cost_bps_max),
+    }
+
+def _ensure_mask_viable(M: Dict[str, int]) -> Dict[str, int]:
+    # Ensure at least one int and one float are active
+    if not any(M.get(k, 0) for k in GENE_INTS):
+        M[random.choice(GENE_INTS)] = 1
+    if not any(M.get(k, 0) for k in GENE_FLOATS):
+        M[random.choice(GENE_FLOATS)] = 1
+    return M
+
+def _init_masks_steps(b: 'Bounds', rng: random.Random) -> Tuple[Dict[str, int], Dict[str, float]]:
+    ranges = _gene_ranges(b)
+    M: Dict[str, int] = {}
+    S: Dict[str, float] = {}
+    # ~40% of genes active initially
+    for k in GENE_INTS + GENE_FLOATS:
+        M[k] = 1 if rng.random() < 0.4 else 0
+    M = _ensure_mask_viable(M)
+    # Step sizes
+    for k in GENE_INTS:
+        lo, hi = ranges[k]
+        span = max(1.0, float(hi - lo))
+        base = 0.12 * span
+        mn = SA_STEP_MIN_FRAC * span
+        mx = SA_STEP_MAX_FRAC * span
+        S[k] = _clamp(base, mn, mx)
+    for k in GENE_ADD_FLOATS:
+        lo, hi = ranges[k]
+        span = float(hi - lo) if hi > lo else max(1e-9, abs(hi) + abs(lo))
+        base = 0.18 * span
+        mn = SA_STEP_MIN_FRAC * span
+        mx = SA_STEP_MAX_FRAC * span
+        S[k] = _clamp(base, mn, mx)
+    for k in GENE_LOG_FLOATS:
+        # relative sigma in log-domain
+        S[k] = _clamp(0.18, SA_LOGSTEP_MIN, SA_LOGSTEP_MAX)
+    return M, S
 
 # ----------------------------
 # Bounds for EA
@@ -123,7 +205,7 @@ def _fix(ind: Dict, b: Bounds) -> Dict:
     y["sma_fast"], y["sma_slow"], y["sma_long"] = sf, ss, sl
 
     # Slope len & holding period
-    y["long_slope_len"]      = _clip_int(int(y.get("long_slope_len", 15)), b.long_slope_len_min, b.long_slope_len_max)
+    y["long_slope_len"]       = _clip_int(int(y.get("long_slope_len", 15)), b.long_slope_len_min, b.long_slope_len_max)
     y["holding_period_limit"] = _clip_int(int(y.get("holding_period_limit", 0)), b.holding_period_min, b.holding_period_max)
 
     # Bool
@@ -132,7 +214,7 @@ def _fix(ind: Dict, b: Bounds) -> Dict:
     return y
 
 def _rand(b: Bounds, rng: random.Random) -> Dict:
-    """Random individual within bounds, then repaired."""
+    M, S = _init_masks_steps(b, rng)
     ind = {
         "breakout_n": rng.randint(b.breakout_min, b.breakout_max),
         "exit_n": rng.randint(b.exit_min, b.exit_max),
@@ -150,6 +232,9 @@ def _rand(b: Bounds, rng: random.Random) -> Dict:
 
         "holding_period_limit": rng.randint(b.holding_period_min, b.holding_period_max),
         "cost_bps": rng.uniform(b.cost_bps_min, b.cost_bps_max),
+
+        "_M": M,
+        "_S": S,
     }
     return _fix(ind, b)
 
@@ -159,56 +244,56 @@ def _rand(b: Bounds, rng: random.Random) -> Dict:
 
 def _mutate(ind: Dict, b: Bounds, rng: random.Random) -> Dict:
     out = dict(ind)
+    M = dict(out.get("_M", {}))
+    S = dict(out.get("_S", {}))
 
-    # ---- integers with Gaussian steps aware of ranges ----
-    if rng.random() < 0.7:
-        sig = max(1.0, _sig_from_range(b.breakout_min, b.breakout_max))
-        out["breakout_n"] = int(round(out.get("breakout_n", 55) + rng.gauss(0, sig)))
+    # --- self-adapt step sizes (log-normal) ---
+    for k in GENE_INTS + GENE_FLOATS:
+        if k in GENE_LOG_FLOATS:
+            S[k] = _clamp(S.get(k, 0.18) * math.exp(rng.gauss(0, SA_SIGMA_NOISE)), SA_LOGSTEP_MIN, SA_LOGSTEP_MAX)
+        else:
+            lo, hi = _gene_ranges(b)[k]
+            span = max(1.0, float(hi - lo))
+            mn = SA_STEP_MIN_FRAC * span
+            mx = SA_STEP_MAX_FRAC * span
+            S[k] = _clamp(S.get(k, 0.12 * span) * math.exp(rng.gauss(0, SA_SIGMA_NOISE)), mn, mx)
 
-    if rng.random() < 0.7:
-        br = max(1, int(out.get("breakout_n", 55)))
-        ratio = _clamp(out.get("exit_n", 20) / br, 0.2, 0.9)
-        ratio += rng.gauss(0, 0.06)
-        out["exit_n"] = int(round(_clamp(ratio, 0.2, 0.9) * br))
+    # --- toggle masks sparsely ---
+    for k in GENE_INTS + GENE_FLOATS:
+        if M.get(k, 1):
+            if rng.random() < SA_P_OFF:
+                M[k] = 0
+        else:
+            if rng.random() < SA_P_ON:
+                M[k] = 1
+    M = _ensure_mask_viable(M)
 
-    if rng.random() < 0.6:
-        sig = max(1.0, _sig_from_range(b.atr_min, b.atr_max, frac=0.15))
-        out["atr_n"] = int(round(out.get("atr_n", 14) + rng.gauss(0, sig)))
+    # --- apply mutation only to active genes ---
+    # Integers (Gaussian step, then round)
+    for k in GENE_INTS:
+        if M.get(k, 0):
+            step = S.get(k, 1.0)
+            out[k] = int(round(out.get(k, 0) + rng.gauss(0, step)))
 
-    # trend filter windows
-    if rng.random() < 0.5:
-        out["sma_fast"] = int(round(out.get("sma_fast", 30) + rng.gauss(0, 4)))
-    if rng.random() < 0.5:
-        out["sma_slow"] = int(round(out.get("sma_slow", 50) + rng.gauss(0, 5)))
-    if rng.random() < 0.5:
-        out["sma_long"] = int(round(out.get("sma_long", 150) + rng.gauss(0, 8)))
-    if rng.random() < 0.5:
-        out["long_slope_len"] = int(round(out.get("long_slope_len", 15) + rng.gauss(0, 2)))
+    # Floats: log-space or additive
+    for k in GENE_LOG_FLOATS:
+        if M.get(k, 0):
+            step = S.get(k, 0.18)
+            out[k] = float(out.get(k, 1.0)) * math.exp(rng.gauss(0, step))
+    for k in GENE_ADD_FLOATS:
+        if M.get(k, 0):
+            step = S.get(k, 0.1)
+            out[k] = float(out.get(k, 0.0)) + rng.gauss(0, step)
 
-    if rng.random() < 0.4:
-        out["holding_period_limit"] = int(round(out.get("holding_period_limit", 0) + rng.gauss(0, 10)))
-
-    # ---- floats in log-space (scale-aware) or bounded Gaussian ----
-    if rng.random() < 0.6:
-        out["atr_multiple"] = _log_mut(out.get("atr_multiple", 3.0), b.atr_multiple_min, b.atr_multiple_max, sigma=0.18)
-
-    if rng.random() < 0.6:
-        out["risk_per_trade"] = _log_mut(out.get("risk_per_trade", 0.01), b.risk_per_trade_min, b.risk_per_trade_max, sigma=0.25)
-
-    if rng.random() < 0.6:
-        out["tp_multiple"] = _clamp(out.get("tp_multiple", 0.0) + rng.gauss(0, 0.35), b.tp_multiple_min, b.tp_multiple_max)
-
-    if rng.random() < 0.5:
-        out["cost_bps"] = _clamp(out.get("cost_bps", 0.0) + rng.gauss(0, 0.3), b.cost_bps_min, b.cost_bps_max)
-
-    # ---- rare boolean flip ----
+    # Rare boolean flip for trend filter (unchanged logic)
     if b.allow_trend_filter and rng.random() < 0.2:
         out["use_trend_filter"] = not bool(out.get("use_trend_filter", False))
 
+    # Write back strategy fields and repair
+    out["_M"], out["_S"] = M, S
     return _fix(out, b)
 
 def _xover(a: Dict, b_: Dict, rng: random.Random, bounds: Bounds) -> Dict:
-    """Two-parent crossover: ints coin-flip, floats blended, then repaired."""
     child = {}
     # integers: coin-flip inherit
     for k in ["breakout_n", "exit_n", "atr_n", "sma_fast", "sma_slow", "sma_long", "long_slope_len", "holding_period_limit"]:
@@ -220,6 +305,31 @@ def _xover(a: Dict, b_: Dict, rng: random.Random, bounds: Bounds) -> Dict:
     child["cost_bps"]       = _clamp(_blend(a["cost_bps"],       b_["cost_bps"],       alpha=0.2), bounds.cost_bps_min, bounds.cost_bps_max)
     # bool
     child["use_trend_filter"] = a["use_trend_filter"] if rng.random() < 0.5 else b_["use_trend_filter"]
+
+    # --- inherit strategy: masks & step sizes ---
+    Ma = a.get("_M", {}); Mb = b_.get("_M", {})
+    Sa = a.get("_S", {}); Sb = b_.get("_S", {})
+    M: Dict[str, int] = {}
+    S: Dict[str, float] = {}
+    for k in GENE_INTS + GENE_FLOATS:
+        # mask: pick a parent
+        M[k] = Ma.get(k, 1) if rng.random() < 0.5 else Mb.get(k, 1)
+        # step: average + tiny noise
+        s_val = 0.5 * (Sa.get(k, 0.1) + Sb.get(k, 0.1))
+        if k in GENE_LOG_FLOATS:
+            s_val = _clamp(s_val * math.exp(rng.gauss(0, 0.05)), SA_LOGSTEP_MIN, SA_LOGSTEP_MAX)
+        else:
+            # clamp by range-based limits
+            lo, hi = _gene_ranges(bounds)[k]
+            span = max(1.0, float(hi - lo))
+            mn = SA_STEP_MIN_FRAC * span
+            mx = SA_STEP_MAX_FRAC * span
+            s_val = _clamp(s_val, mn, mx)
+        S[k] = s_val
+    M = _ensure_mask_viable(M)
+    child["_M"] = M
+    child["_S"] = S
+
     return _fix(child, bounds)
 
 # ----------------------------
@@ -300,31 +410,63 @@ def _fitness(
             "debug_valid": res_va.get("debug", {}) if isinstance(res_va, dict) else {},
         }
 
+        # Hard constraint: require a minimum number of validation trades to avoid cherry-picking
+        trades_v = int(m_va.get("trades", 0) or 0)
+        if trades_v < MIN_VALIDATION_TRADES:
+            # Soft fallback: rank using TRAIN metrics, scaled down by how short we are on valid trades
+            sharpe_t = float(m_tr.get("sharpe", 0.0) or 0.0)
+            cagr_t = float(m_tr.get("cagr", 0.0) or 0.0)
+            tr_t = float(m_tr.get("total_return", 0.0) or 0.0)
+            dd_t = float(m_tr.get("max_drawdown", 0.0) or 0.0)  # negative
+            ddp_t = max(0.0, -dd_t)
+
+            tp_mult_val = float(ind.get("tp_multiple", 0.0) or 0.0)
+            penalty_small_tp = 0.08 * max(0.0, 1.3 - tp_mult_val)
+
+            # Base score from TRAIN (weak), scaled by how many valid trades we got (0..1), with sqrt taper
+            scarcity = trades_v / float(max(1, MIN_VALIDATION_TRADES))
+            scale = 0.35 * math.sqrt(scarcity)  # max 0.35 weight if we have *some* valid trades
+
+            score_train = (
+                    0.55 * sharpe_t +
+                    0.25 * cagr_t +
+                    0.10 * tr_t -
+                    0.10 * ddp_t
+            )
+            score = scale * score_train - penalty_small_tp
+
+            # Keep returning validation metrics (so UI remains consistent)
+            debug_payload["note"] = f"soft_fallback_train_used (valid_trades={trades_v} < min={MIN_VALIDATION_TRADES})"
+            return score, m_va, debug_payload
+
         # Use Validation to rank, with small Train regularization
         sharpe_v = float(m_va.get("sharpe", 0.0) or 0.0)
         cagr_v   = float(m_va.get("cagr", 0.0)   or 0.0)
         tr_v     = float(m_va.get("total_return", 0.0) or 0.0)
         dd_v     = float(m_va.get("max_drawdown", 0.0) or 0.0)  # negative
         ddp_v    = max(0.0, -dd_v)
-        trades_v = int(m_va.get("trades", 0) or 0)
 
         sharpe_t = float(m_tr.get("sharpe", 0.0) or 0.0)
 
-        # Mild regularizers to push away from pathological settings
+        # Regularizers / tie-breakers
         tp_mult_val = float(ind.get("tp_multiple", 0.0) or 0.0)
         exit_ratio  = (int(ind.get("exit_n", 1)) / max(1, int(ind.get("breakout_n", 1))))
-        penalty_small_tp   = 0.05 * max(0.0, 1.3 - tp_mult_val)   # prefer TP >= ~1.3 when TP is used
-        penalty_exit_ratio = 0.02 * max(0.0, exit_ratio - 0.80)   # discourage exit too close to breakout
-        penalty_few_trades = 0.10 if trades_v < 8 else 0.0        # avoid tiny-sample flukes
+        penalty_small_tp   = 0.08 * max(0.0, 1.3 - tp_mult_val)   # stronger push away from micro-TPs
+        penalty_exit_ratio = 0.08 * max(0.0, exit_ratio - 0.80)   # discourage exits too close to breakout
 
-        score = (
+        # Base score focuses on Validation; lightly anchors to Train
+        score_base = (
             0.55 * sharpe_v +
             0.25 * cagr_v +
             0.10 * tr_v -
             0.10 * ddp_v +
             0.05 * max(0.0, min(sharpe_t, 2.0))  # small train anchoring
-        ) - (penalty_small_tp + penalty_exit_ratio + penalty_few_trades)
+        )
 
+        # Soft scaling by validation trade count (cap to avoid over-rewarding hyper-turnover)
+        trade_scale = min(1.25, trades_v / float(TARGET_VALIDATION_TRADES))
+
+        score = score_base * trade_scale - (penalty_small_tp + penalty_exit_ratio)
         return score, m_va, debug_payload
 
     # --- No validation: original single-run path ---
@@ -451,18 +593,20 @@ def evolve_params(
             best_ind = dict(gen_best_ind)
             best_metrics = dict(gen_best_metrics)
 
-        if debug_mode and (gen == 0 or gen_best_fit > prev_best):
+        if debug_mode:
             try:
                 _print_debug(gen, symbol, start, end, starting_equity, gen_best_ind, gen_best_metrics, gen_best_debug)
             except Exception:
                 pass
 
         avg_fit = float(np.mean([s[0] for s in scored])) if scored else 0.0
+        Mbest = gen_best_ind.get("_M", {}) if isinstance(gen_best_ind, dict) else {}
         history.append({
             "generation": gen,
             "best_fitness": float(gen_best_fit),
             "avg_fitness": float(avg_fit),
-            "best_params": dict(gen_best_ind),
+            "best_params": {k: v for k, v in gen_best_ind.items() if not k.startswith("_")},
+            "active_genes": int(sum(Mbest.get(k, 0) for k in GENE_INTS + GENE_FLOATS)),
         })
 
         if progress_cb:
@@ -474,7 +618,7 @@ def evolve_params(
 
         # Tournament selection among top pool (keeps some pressure)
         pool_pop = [s[1] for s in scored]
-        pool_fit = [(s[0], s[1]) for s in scored]
+        pool_fit = [(s[0], s[1]) for s in scored]  # kept for readability with _tournament_select signature
 
         while len(next_pop) < pop_size:
             p1 = _tournament_select(pool_pop, [(s[0], s[1]) for s in scored], k=3)

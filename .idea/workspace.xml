@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="">
+    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="EA: validation-aware fitness + triage logging&#10;&#10;- Fitness is now Train/Validation split (70/30) and ranks by Validation:&#10;  score = 0.55*Sharpe_valid + 0.25*CAGR_valid + 0.10*TotalReturn_valid&#10;          - 0.10*MaxDD_valid + 0.05*clip(Sharpe_train, 0..2)&#10;&#10;- Light regularizers (tie-breakers):&#10;  • Penalty if tp_multiple &lt; ~1.3 (discourage micro take-profits)&#10;  • Penalty if exit_n / breakout_n &gt; 0.80 (avoid exit nearly as slow as entry)&#10;  • Penalty if trades_valid &lt; 8 (filter tiny-sample flukes)&#10;&#10;- Triage / diagnostics:&#10;  • Added console prints showing TRAIN and VALID metrics when best improves&#10;  • Continues to print core metrics and params each improvement&#10;&#10;- Implementation:&#10;  • src/tuning/evolve.py:&#10;    - new _split_dates() helper&#10;    - _fitness(): Train/Valid evaluation + regularizers + optional debug payload&#10;    - _print_debug(): now shows -- TRAIN -- and -- VALID -- rows if available&#10;    - evolve_params(): calls _fitness(..., use_validation=True), retains elitism/crossover/mutation&#10;&#10;- Usage:&#10;  • Ensure tuner calls evolve_params(..., debug_mode=True) to see console triage&#10;  • Run via: `streamlit run Home.py` and watch terminal logs&#10;&#10;- Notes:&#10;  • No changes to strategy API or UI controls&#10;  • Expected effect: fewer “high win rate / low CAGR” solutions; more robust out-of-sample picks">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pages/2_Ticker_Selector_and_Tuning.py" beforeDir="false" afterPath="$PROJECT_DIR$/pages/2_Ticker_Selector_and_Tuning.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tuning/evolve.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/tuning/evolve.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -96,7 +97,7 @@
       <workItem from="1757515240338" duration="9662000" />
       <workItem from="1757526380162" duration="7046000" />
       <workItem from="1757550532581" duration="709000" />
-      <workItem from="1757560014779" duration="1131000" />
+      <workItem from="1757560014779" duration="4789000" />
     </task>
     <task id="LOCAL-00001" summary="Working V1 framework. No evolution algo">
       <option name="closed" value="true" />
@@ -202,7 +203,15 @@
       <option name="project" value="LOCAL" />
       <updated>1757559567469</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="EA: validation-aware fitness + triage logging&#10;&#10;- Fitness is now Train/Validation split (70/30) and ranks by Validation:&#10;  score = 0.55*Sharpe_valid + 0.25*CAGR_valid + 0.10*TotalReturn_valid&#10;          - 0.10*MaxDD_valid + 0.05*clip(Sharpe_train, 0..2)&#10;&#10;- Light regularizers (tie-breakers):&#10;  • Penalty if tp_multiple &lt; ~1.3 (discourage micro take-profits)&#10;  • Penalty if exit_n / breakout_n &gt; 0.80 (avoid exit nearly as slow as entry)&#10;  • Penalty if trades_valid &lt; 8 (filter tiny-sample flukes)&#10;&#10;- Triage / diagnostics:&#10;  • Added console prints showing TRAIN and VALID metrics when best improves&#10;  • Continues to print core metrics and params each improvement&#10;&#10;- Implementation:&#10;  • src/tuning/evolve.py:&#10;    - new _split_dates() helper&#10;    - _fitness(): Train/Valid evaluation + regularizers + optional debug payload&#10;    - _print_debug(): now shows -- TRAIN -- and -- VALID -- rows if available&#10;    - evolve_params(): calls _fitness(..., use_validation=True), retains elitism/crossover/mutation&#10;&#10;- Usage:&#10;  • Ensure tuner calls evolve_params(..., debug_mode=True) to see console triage&#10;  • Run via: `streamlit run Home.py` and watch terminal logs&#10;&#10;- Notes:&#10;  • No changes to strategy API or UI controls&#10;  • Expected effect: fewer “high win rate / low CAGR” solutions; more robust out-of-sample picks">
+      <option name="closed" value="true" />
+      <created>1757561556874</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1757561556874</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -230,6 +239,7 @@
     <MESSAGE value="individual ticker graphs in simulation results with buy and sell markers" />
     <MESSAGE value="Auto bounds for initial model params BETA" />
     <MESSAGE value="random improvements to evolve not realy giving good results" />
-    <option name="LAST_COMMIT_MESSAGE" value="random improvements to evolve not realy giving good results" />
+    <MESSAGE value="EA: validation-aware fitness + triage logging&#10;&#10;- Fitness is now Train/Validation split (70/30) and ranks by Validation:&#10;  score = 0.55*Sharpe_valid + 0.25*CAGR_valid + 0.10*TotalReturn_valid&#10;          - 0.10*MaxDD_valid + 0.05*clip(Sharpe_train, 0..2)&#10;&#10;- Light regularizers (tie-breakers):&#10;  • Penalty if tp_multiple &lt; ~1.3 (discourage micro take-profits)&#10;  • Penalty if exit_n / breakout_n &gt; 0.80 (avoid exit nearly as slow as entry)&#10;  • Penalty if trades_valid &lt; 8 (filter tiny-sample flukes)&#10;&#10;- Triage / diagnostics:&#10;  • Added console prints showing TRAIN and VALID metrics when best improves&#10;  • Continues to print core metrics and params each improvement&#10;&#10;- Implementation:&#10;  • src/tuning/evolve.py:&#10;    - new _split_dates() helper&#10;    - _fitness(): Train/Valid evaluation + regularizers + optional debug payload&#10;    - _print_debug(): now shows -- TRAIN -- and -- VALID -- rows if available&#10;    - evolve_params(): calls _fitness(..., use_validation=True), retains elitism/crossover/mutation&#10;&#10;- Usage:&#10;  • Ensure tuner calls evolve_params(..., debug_mode=True) to see console triage&#10;  • Run via: `streamlit run Home.py` and watch terminal logs&#10;&#10;- Notes:&#10;  • No changes to strategy API or UI controls&#10;  • Expected effect: fewer “high win rate / low CAGR” solutions; more robust out-of-sample picks" />
+    <option name="LAST_COMMIT_MESSAGE" value="EA: validation-aware fitness + triage logging&#10;&#10;- Fitness is now Train/Validation split (70/30) and ranks by Validation:&#10;  score = 0.55*Sharpe_valid + 0.25*CAGR_valid + 0.10*TotalReturn_valid&#10;          - 0.10*MaxDD_valid + 0.05*clip(Sharpe_train, 0..2)&#10;&#10;- Light regularizers (tie-breakers):&#10;  • Penalty if tp_multiple &lt; ~1.3 (discourage micro take-profits)&#10;  • Penalty if exit_n / breakout_n &gt; 0.80 (avoid exit nearly as slow as entry)&#10;  • Penalty if trades_valid &lt; 8 (filter tiny-sample flukes)&#10;&#10;- Triage / diagnostics:&#10;  • Added console prints showing TRAIN and VALID metrics when best improves&#10;  • Continues to print core metrics and params each improvement&#10;&#10;- Implementation:&#10;  • src/tuning/evolve.py:&#10;    - new _split_dates() helper&#10;    - _fitness(): Train/Valid evaluation + regularizers + optional debug payload&#10;    - _print_debug(): now shows -- TRAIN -- and -- VALID -- rows if available&#10;    - evolve_params(): calls _fitness(..., use_validation=True), retains elitism/crossover/mutation&#10;&#10;- Usage:&#10;  • Ensure tuner calls evolve_params(..., debug_mode=True) to see console triage&#10;  • Run via: `streamlit run Home.py` and watch terminal logs&#10;&#10;- Notes:&#10;  • No changes to strategy API or UI controls&#10;  • Expected effect: fewer “high win rate / low CAGR” solutions; more robust out-of-sample picks" />
   </component>
 </project>

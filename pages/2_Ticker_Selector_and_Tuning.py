@@ -13,7 +13,7 @@ from src.storage import (
     list_param_bounds, save_param_bounds, get_param_bounds, get_default_param_bounds
 )
 from src.tuning.auto_bounds import suggest_bounds_for, apply_bounds_to_streamlit_state
-
+import src.tuning.evolve as ev
 
 @st.cache_data
 def load_universe_index() -> dict:
@@ -212,7 +212,83 @@ if st.button("Load Profile", key="btn_load_prof"):
     else:
         st.info("Loaded default system values.")
 
+# ---------- Validation constraints (anti-cherry-picking) ----------
+with st.expander("Validation trade constraints", expanded=False):
+    min_valid_trades = st.slider(
+        "Min validation trades",
+        0, 30,
+        int(getattr(ev, "MIN_VALIDATION_TRADES", 8)),
+        1,
+        help="Individuals with fewer trades than this on the validation slice are rejected outright."
+    )
+    target_valid_trades = st.slider(
+        "Target validation trades (scale)",
+        1, 60,
+        int(getattr(ev, "TARGET_VALIDATION_TRADES", 12)),
+        1,
+        help="Soft target: fitness scales up with trade count up to this value (prevents tiny-sample flukes)."
+    )
+
+# Apply to evolve module for this run
+ev.MIN_VALIDATION_TRADES = int(min_valid_trades)
+ev.TARGET_VALIDATION_TRADES = int(target_valid_trades)
+
 # ---------- EA settings ----------
+# --- Self-adaptive GA/ES (advanced) ---
+with st.expander("Self-adaptive GA/ES (advanced)", expanded=False):
+    sa_p_on   = st.slider(
+        "Mask on (p_on)", 0.0, 0.2, float(getattr(ev, "SA_P_ON", 0.05)), 0.005,
+        help="Chance to activate an inactive gene at each mutation."
+    )
+    sa_p_off  = st.slider(
+        "Mask off (p_off)", 0.0, 0.2, float(getattr(ev, "SA_P_OFF", 0.02)), 0.005,
+        help="Chance to deactivate an active gene at each mutation."
+    )
+
+    col1, col2 = st.columns(2)
+    with col1:
+        sa_step_min = st.slider(
+            "Step min frac (ints/add floats)", 0.0, 0.2,
+            float(getattr(ev, "SA_STEP_MIN_FRAC", 0.02)), 0.005,
+            help="Lower bound for per-gene step size as a fraction of range."
+        )
+        sa_log_min  = st.slider(
+            "Log-step min (mult floats)", 0.01, 0.5,
+            float(getattr(ev, "SA_LOGSTEP_MIN", 0.03)), 0.01,
+            help="Min std-dev in log domain for multiplicative genes (atr_multiple, risk_per_trade)."
+        )
+    with col2:
+        sa_step_max = st.slider(
+            "Step max frac (ints/add floats)", 0.05, 0.6,
+            float(getattr(ev, "SA_STEP_MAX_FRAC", 0.35)), 0.01,
+            help="Upper bound for per-gene step size as a fraction of range."
+        )
+        sa_log_max  = st.slider(
+            "Log-step max (mult floats)", 0.05, 0.8,
+            float(getattr(ev, "SA_LOGSTEP_MAX", 0.35)), 0.01,
+            help="Max std-dev in log domain for multiplicative genes."
+        )
+
+    sa_sigma = st.slider(
+        "Step-size noise σ", 0.0, 0.5, float(getattr(ev, "SA_SIGMA_NOISE", 0.15)), 0.01,
+        help="Global noise applied to step sizes each mutation (self-adaptation).\nHigher = more exploration."
+    )
+
+# Sanity: enforce min<=max where applicable
+if sa_step_max < sa_step_min:
+    sa_step_max = sa_step_min
+if sa_log_max < sa_log_min:
+    sa_log_max = sa_log_min
+
+# Apply overrides to evolve module globals so the current run uses them
+ev.SA_P_ON = sa_p_on
+ev.SA_P_OFF = sa_p_off
+ev.SA_STEP_MIN_FRAC = sa_step_min
+ev.SA_STEP_MAX_FRAC = sa_step_max
+ev.SA_LOGSTEP_MIN = sa_log_min
+ev.SA_LOGSTEP_MAX = sa_log_max
+ev.SA_SIGMA_NOISE = sa_sigma
+
 c4, c5, c6 = st.columns(3)
 with c4:
     starting_equity = st.number_input("Starting Equity ($)", min_value=1000, value=10_000, step=500, key="ev_eq")
@@ -320,7 +396,7 @@ if st.button("Run Evolutionary Tuning", type="primary", key="btn_ev"):
     )
 
     def _cb(done: int, total: int, best_fit: float):
-        prog.progress(min(int(100 * done / total), 100), text=f"Generation {done}/{total} — best Sharpe: {best_fit:.2f}")
+        prog.progress(min(int(100 * done / total), 100), text=f"Generation {done}/{total} — best fit: {best_fit:.3f}")
 
     with st.spinner("Evolving…"):
         try:
