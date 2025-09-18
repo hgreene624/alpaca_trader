@@ -1,174 +1,132 @@
-# tests/test_data_pipeline.py
+"""Unit tests for src.data.loader."""
 from __future__ import annotations
 
-import os
-import sys
-from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import pandas as pd
+import pytest
 
-HERE = Path(__file__).resolve().parent
-PROJ = HERE.parent
-sys.path.insert(0, str(PROJ))  # ensure 'src' is importable when run as module
-
-SECRETS_FILE = PROJ / ".streamlit" / "secrets.toml"
+from src.data import loader
 
 
-def _load_secrets_to_env():
-    # Try streamlit first (if available), else parse toml manually.
-    loaded = False
-    keys = {}
-    try:
-        import streamlit as st  # noqa
-        try:
-            from streamlit.web.cli import _main_run_clExplicit
-        except Exception:
-            pass
-        try:
-            from streamlit.runtime.secrets import _file as st_secrets_file
-            # st.secrets only works inside a Streamlit runtime; fallback:
-        except Exception:
-            pass
-    except Exception:
-        pass
-
-    # Manual TOML load
-    try:
-        import tomllib  # py3.11+
-    except Exception:
-        tomllib = None
-
-    if SECRETS_FILE.exists() and tomllib is not None:
-        try:
-            with open(SECRETS_FILE, "rb") as f:
-                data = tomllib.load(f)
-            # Accept either ALPACA_* or APCA_* naming
-            def pick(*names):
-                for n in names:
-                    if n in data:
-                        return data[n]
-                return None
-
-            k = pick("APCA_API_KEY_ID", "ALPACA_API_KEY")
-            s = pick("APCA_API_SECRET_KEY", "ALPACA_SECRET_KEY")
-            b = pick("APCA_API_BASE_URL", "ALPACA_BASE_URL")
-            d = pick("ALPACA_DATA_URL")  # optional
-
-            if k: os.environ["APCA_API_KEY_ID"] = k
-            if s: os.environ["APCA_API_SECRET_KEY"] = s
-            if b: os.environ["APCA_API_BASE_URL"] = b
-            if d: os.environ["ALPACA_DATA_URL"] = d
-
-            keys = list(data.keys())
-            loaded = True
-        except Exception as e:
-            print("WARN: Failed to parse secrets.toml:", e)
-    else:
-        keys = []
-
-    print("\nsecrets.toml present:", SECRETS_FILE.exists(), "keys:", keys)
-    return loaded
+@pytest.fixture(autouse=True)
+def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure data-provider env vars do not leak between tests."""
+    for key in ["DATA_PROVIDER", "ALPACA_FEED"]:
+        monkeypatch.delenv(key, raising=False)
 
 
-def _print_env():
-    print("\n========================================================================")
-    print("Environment")
-    print("========================================================================")
-    print("Python: ", sys.version.split()[0], " (", sys.executable, ")")
-    print("PWD:    ", os.getcwd())
-    print("APCA_API_KEY_ID     :", os.environ.get("APCA_API_KEY_ID", "<EMPTY>" if "APCA_API_KEY_ID" not in os.environ else "************" + os.environ["APCA_API_KEY_ID"][-4:]))
-    print("APCA_API_SECRET_KEY :", "<EMPTY>" if "APCA_API_SECRET_KEY" not in os.environ else "*"*36 + os.environ["APCA_API_SECRET_KEY"][-4:])
-    print("APCA_API_BASE_URL   :", os.environ.get("APCA_API_BASE_URL", "<EMPTY>"))
-    print("ALPACA_DATA_URL     :", os.environ.get("ALPACA_DATA_URL", "<EMPTY>"))
-    print("ALPACA_FEED         :", os.environ.get("ALPACA_FEED", "<EMPTY>"), "(set to 'iex' for paper/basic)")  # important
+def make_df(index: list[Any], columns: list[Any], data: list[list[Any]]) -> pd.DataFrame:
+    return pd.DataFrame(data, index=pd.Index(index), columns=columns)
 
 
-def _show_df(df: pd.DataFrame, label: str):
-    if df is None or df.empty:
-        print(f"{label}: EMPTY")
-        return
-    cols = list(df.columns)
-    idx = type(df.index).__name__
-    print(f"{label}: rows={len(df)} cols={cols} index={idx}")
-    try:
-        print("  head:", df.index[0], "tail:", df.index[-1])
-    except Exception:
-        pass
+def test_normalize_ohlcv_handles_multiindex_and_renames_columns() -> None:
+    idx = pd.date_range("2024-01-01", periods=3, freq="D", tz="US/Eastern")
+    columns = pd.MultiIndex.from_product([["AAPL"], ["Open", "High", "Low", "Close", "Volume"]])
+    values = [
+        [100, 101, 99, 100.5, 1_000_000],
+        [101, 102, 100, 101.5, 1_100_000],
+        [102, 103, 101, 102.5, 1_200_000],
+    ]
+    df = make_df(idx, columns, values)
+
+    normalized = loader._normalize_ohlcv(df)
+
+    assert list(normalized.columns) == ["open", "high", "low", "close", "volume"]
+    assert isinstance(normalized.index, pd.DatetimeIndex)
+    assert normalized.index.tz == timezone.utc
+    # Ensure we sorted ascending and preserved data
+    assert normalized.iloc[0, 0] == 100
 
 
-def _leg(title, fn, *args, **kwargs):
-    print("\n------------------------------------------------------------------------")
-    print(title)
-    print("------------------------------------------------------------------------")
-    try:
-        df = fn(*args, **kwargs)
-        _show_df(df, "OK")
-        print("RESULT: PASS")
-    except Exception as e:
-        print("RESULT: FAIL")
-        print("ERROR :", repr(e))
+def test_widen_daily_end_adds_one_day_for_daily_bars() -> None:
+    end = datetime(2024, 1, 10, tzinfo=timezone.utc)
+    widened = loader._widen_daily_end(end, "1D")
+    assert widened == end + timedelta(days=1)
+
+    intraday = loader._widen_daily_end(end, "1h")
+    assert intraday == end
 
 
-def main():
-    _load_secrets_to_env()
-    _print_env()
+def test_get_ohlcv_prefers_alpaca_when_available(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Build a minimal DataFrame that _normalize_ohlcv will accept.
+    idx = pd.date_range("2024-01-01", periods=2, freq="D", tz="UTC")
+    alpaca_df = pd.DataFrame({
+        "open": [1, 2],
+        "high": [1.5, 2.5],
+        "low": [0.5, 1.5],
+        "close": [1.25, 2.25],
+        "volume": [100, 200],
+    }, index=idx)
 
-    # Date range: 1y back to avoid recent-SIP windows; adjust as needed.
-    end = datetime.utcnow()
-    start = end - timedelta(days=365)
+    called = {"alpaca": 0, "yahoo": 0}
 
-    symbol = os.environ.get("TEST_SYMBOL", "AAPL")
+    def fake_alpaca(symbol: str, start: datetime, end: datetime, timeframe: str, feed: str) -> pd.DataFrame:
+        called["alpaca"] += 1
+        assert feed == "iex"
+        return alpaca_df
 
-    print("\n========================================================================")
-    print("Module paths")
-    print("========================================================================")
-    import importlib
-    L = importlib.import_module("src.data.loader")
-    A = importlib.import_module("src.data.alpaca_data")
-    Y = importlib.import_module("src.data.yf")
-    print("loader file :", getattr(L, "__file__", "<??>"))
-    print("alpaca file :", getattr(A, "__file__", "<??>"))
-    print("yf file     :", getattr(Y, "__file__", "<??>"))
-    if not hasattr(Y, "load_ohlcv"):
-        print("FATAL: src.data.yf.load_ohlcv is missing!")
-    else:
-        print("yf.load_ohlcv: OK (callable)")
+    def fake_yahoo(*_args: Any, **_kwargs: Any) -> pd.DataFrame:
+        called["yahoo"] += 1
+        raise AssertionError("Yahoo fallback should not be used when Alpaca succeeds")
 
-    # Force feed=iex for Alpaca leg unless user overrides
-    feed = os.environ.get("ALPACA_FEED", "iex")
+    monkeypatch.setattr(loader.A, "load_ohlcv", fake_alpaca)
+    monkeypatch.setattr(loader.Y, "load_ohlcv", fake_yahoo)
 
-    # 1) Direct Alpaca leg (will fail if no SDK in workers or wrong feed)
-    _leg(
-        f"LEG 1: Direct Alpaca (feed={feed})",
-        getattr(A, "load_ohlcv"),
-        symbol,
-        start,
-        end,
-        "1Day",
-        feed=feed,
-    )
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2024, 1, 2, tzinfo=timezone.utc)
 
-    # 2) Direct Yahoo leg
-    _leg(
-        "LEG 2: Direct Yahoo Finance",
-        getattr(Y, "load_ohlcv"),
-        symbol,
-        start,
-        end,
-        "1d",
-        auto_adjust=True,
-    )
+    df = loader.get_ohlcv("AAPL", start, end, timeframe="1d")
 
-    # 3) Unified loader (tries Alpaca then YF)
-    _leg(
-        "LEG 3: Unified loader (get_ohlcv → Alpaca fallback to YF)",
-        getattr(L, "get_ohlcv"),
-        symbol,
-        start,
-        end,
-    )
+    pd.testing.assert_frame_equal(df, alpaca_df)
+    assert called == {"alpaca": 1, "yahoo": 0}
 
 
-if __name__ == "__main__":
-    main()
+def test_get_ohlcv_falls_back_to_yahoo(monkeypatch: pytest.MonkeyPatch) -> None:
+    idx = pd.date_range("2024-01-01", periods=2, freq="D", tz="UTC")
+    yahoo_df = pd.DataFrame({
+        "Open": [10, 11],
+        "High": [11, 12],
+        "Low": [9, 10],
+        "Close": [10.5, 11.5],
+        "Volume": [1_000, 1_100],
+    }, index=idx)
+
+    def fake_alpaca(*_args: Any, **_kwargs: Any) -> pd.DataFrame:
+        raise RuntimeError("Alpaca unavailable")
+
+    def fake_yahoo(*_args: Any, **_kwargs: Any) -> pd.DataFrame:
+        return yahoo_df
+
+    monkeypatch.setattr(loader.A, "load_ohlcv", fake_alpaca)
+    monkeypatch.setattr(loader.Y, "load_ohlcv", fake_yahoo)
+    monkeypatch.setenv("DATA_PROVIDER", "auto")
+
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2024, 1, 2, tzinfo=timezone.utc)
+
+    df = loader.get_ohlcv("MSFT", start, end, timeframe="1d")
+
+    assert set(df.columns) >= {"open", "high", "low", "close"}
+    assert df.index.tz == timezone.utc
+
+
+def test_get_ohlcv_respects_force_provider(monkeypatch: pytest.MonkeyPatch) -> None:
+    idx = pd.date_range("2024-01-01", periods=1, freq="D", tz="UTC")
+    yahoo_df = pd.DataFrame({
+        "close": [123.0],
+        "open": [120.0],
+        "high": [125.0],
+        "low": [119.0],
+        "volume": [500],
+    }, index=idx)
+
+    monkeypatch.setattr(loader.A, "load_ohlcv", lambda *_a, **_k: pd.DataFrame())
+    monkeypatch.setattr(loader.Y, "load_ohlcv", lambda *_a, **_k: yahoo_df)
+
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    end = datetime(2024, 1, 1, tzinfo=timezone.utc)
+
+    df = loader.get_ohlcv("SPY", start, end, timeframe="1d", force_provider="yf")
+    pd.testing.assert_frame_equal(df, yahoo_df)
