@@ -1,0 +1,137 @@
+{
+  "timestamp": "2025-09-13T09:51:25",
+  "config": {
+    "portfolio": "CommunicationServicesPortfolio",
+    "strategy_dotted": "src.models.atr_breakout",
+    "folds": 4,
+    "starting_equity": 10000.0,
+    "min_trades": 2,
+    "workers": 4,
+    "max_trials": 120,
+    "rescue_tries": 2,
+    "seed": null
+  },
+  "symbols": [
+    "CHTR",
+    "CMCSA",
+    "DIS",
+    "EA",
+    "FOX",
+    "FOXA",
+    "GOOG",
+    "GOOGL",
+    "IPG",
+    "LYV",
+    "META",
+    "MTCH",
+    "NFLX",
+    "NWS",
+    "NWSA",
+    "OMC",
+    "T",
+    "TKO",
+    "TMUS",
+    "TTD",
+    "TTWO",
+    "VZ",
+    "WBD"
+  ],
+  "errors": [
+    {
+      "symbol": "CHTR",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "CMCSA",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "DIS",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "EA",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "FOX",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "FOXA",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "GOOG",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "GOOGL",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "IPG",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "LYV",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "META",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "MTCH",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "NFLX",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "NWS",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "NWSA",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "OMC",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "T",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "TKO",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "TMUS",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "TTD",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "TTWO",
+      "error": "OSError('Unexpected end of stream: Page was smaller (1031) than expected (1737)')"
+    },
+    {
+      "symbol": "VZ",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    },
+    {
+      "symbol": "WBD",
+      "error": "TypeError(\"'<=' not supported between instances of 'Timestamp' and 'NoneType'\")"
+    }
+  ],
+  "symbol_logs": [],
+  "note": "Adapter assumed CLOSE execution.",
+  "id": "20250913-095125_3997a1",
+  "portfolio": "CommunicationServicesPortfolio"
+}

@@ -16,7 +16,7 @@ def _iso_utc(dt: datetime) -> datetime:
 
 
 def _get_data_client():
-    """
+    """codex
     Lazy-import the modern alpaca-py Historical Data client.
     Reads ALPACA_API_KEY/ALPACA_SECRET_KEY if present; otherwise falls back to APCA_*.
     """

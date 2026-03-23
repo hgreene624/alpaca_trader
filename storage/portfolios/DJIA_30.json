@@ -1,0 +1,840 @@
+{
+  "name": "DJIA_30",
+  "tickers": [
+    "AAPL",
+    "AMGN",
+    "AMZN",
+    "AXP",
+    "BA",
+    "CAT",
+    "CRM",
+    "CSCO",
+    "CVX",
+    "DIS",
+    "DOW",
+    "GS",
+    "HD",
+    "HON",
+    "IBM",
+    "JNJ",
+    "JPM",
+    "KO",
+    "MCD",
+    "MMM",
+    "MRK",
+    "MSFT",
+    "NKE",
+    "PG",
+    "TRV",
+    "UNH",
+    "V",
+    "VZ",
+    "WMT",
+    "INTC"
+  ],
+  "meta": {
+    "source": "1_Portfolios",
+    "index_key": "DJIA 30",
+    "filters": {
+      "search": "",
+      "sectors": [],
+      "min_median_close_priors": 0.0,
+      "min_median_dollar_vol_priors": 0.0
+    },
+    "windows": {
+      "priors": [
+        "2020-10-08",
+        "2025-10-07"
+      ]
+    },
+    "count": 30,
+    "last_prefetch_at": "2025-10-07T13:11:37+00:00",
+    "per_symbol_ranges": {
+      "AAPL": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "AMGN": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "AMZN": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "AXP": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "BA": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "CAT": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "CRM": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "CSCO": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "CVX": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "DIS": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "DOW": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "GS": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "HD": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "HON": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "IBM": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "JNJ": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "JPM": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "KO": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "MCD": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "MMM": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "MRK": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "MSFT": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "NKE": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "PG": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "TRV": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "UNH": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "V": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "VZ": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "WMT": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      },
+      "INTC": {
+        "start": "2020-10-09",
+        "end": "2025-10-06"
+      }
+    },
+    "data_cache_root": "storage/data/ohlcv",
+    "data_shards": {
+      "1D": {
+        "AAPL": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/AAPL/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-04-08",
+            "path": "alpaca/AAPL/1D/2020-10-08__2023-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-10-08",
+            "path": "alpaca/AAPL/1D/2020-10-08__2023-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/AAPL/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/AAPL/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/AAPL/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AAPL/1D/2023-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-10-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AAPL/1D/2023-10-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AAPL/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/AAPL/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "AMGN": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/AMGN/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "AMZN": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/AMZN/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-04-08",
+            "path": "alpaca/AMZN/1D/2020-10-08__2023-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-10-08",
+            "path": "alpaca/AMZN/1D/2020-10-08__2023-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/AMZN/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/AMZN/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/AMZN/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AMZN/1D/2023-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-10-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AMZN/1D/2023-10-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/AMZN/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/AMZN/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "AXP": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/AXP/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "BA": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/BA/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CAT": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CAT/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CRM": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/CRM/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CRM/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CSCO": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/CSCO/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CSCO/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CVX": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CVX/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "DIS": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/DIS/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "DOW": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/DOW/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "GS": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/GS/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "HD": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/HD/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/HD/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/HD/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/HD/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/HD/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/HD/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "HON": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/HON/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "IBM": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/IBM/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "JNJ": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/JNJ/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/JNJ/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "JPM": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/JPM/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/JPM/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/JPM/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/JPM/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/JPM/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/JPM/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "KO": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/KO/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/KO/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "MCD": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/MCD/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "MMM": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/MMM/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "MRK": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/MRK/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/MRK/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "MSFT": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/MSFT/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-04-08",
+            "path": "alpaca/MSFT/1D/2020-10-08__2023-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2023-10-08",
+            "path": "alpaca/MSFT/1D/2020-10-08__2023-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/MSFT/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/MSFT/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/MSFT/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/MSFT/1D/2023-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2023-10-08",
+            "end": "2025-10-07",
+            "path": "alpaca/MSFT/1D/2023-10-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/MSFT/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/MSFT/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "NKE": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/NKE/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "PG": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/PG/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/PG/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "TRV": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/TRV/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "UNH": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/UNH/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/UNH/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/UNH/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/UNH/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/UNH/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/UNH/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "V": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-07",
+            "end": "2025-10-07",
+            "path": "alpaca/V/1D/2020-10-07__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2024-04-08",
+            "path": "alpaca/V/1D/2020-10-08__2024-04-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-01-06",
+            "path": "alpaca/V/1D/2020-10-08__2025-01-06.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/V/1D/2020-10-08__2025-10-08.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2024-04-08",
+            "end": "2025-10-07",
+            "path": "alpaca/V/1D/2024-04-08__2025-10-07.parquet"
+          },
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2025-01-06",
+            "end": "2025-10-07",
+            "path": "alpaca/V/1D/2025-01-06__2025-10-07.parquet"
+          }
+        ],
+        "VZ": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/VZ/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "WMT": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/WMT/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "INTC": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/INTC/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ]
+      }
+    },
+    "latest_training": {
+      "train_start": "2020-10-09",
+      "train_end": "2024-04-07",
+      "holdout_start": "2024-04-08",
+      "holdout_end": "2025-10-06",
+      "train_fraction": 0.700109649122807,
+      "test_fraction": 0.29989035087719296,
+      "train_share_pct": 70.011,
+      "test_share_pct": 29.989,
+      "train_days": 1277,
+      "test_days": 547,
+      "coverage_start": "2020-10-09",
+      "coverage_end": "2025-10-06",
+      "coverage_days": 1824,
+      "data_cache_root": "storage/data/ohlcv",
+      "ea_log_file": "storage/logs/ea/20251007_061239_ea.jsonl",
+      "updated_at": "2025-10-07T13:19:25.717438+00:00"
+    }
+  },
+  "saved_at": "2025-10-07T13:19:25.717927+00:00"
+}
