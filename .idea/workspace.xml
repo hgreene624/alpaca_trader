@@ -4,16 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="removed dead files, renamed pages">
-      <change beforePath="$PROJECT_DIR$/.idea/alpaca_trader.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/alpaca_trader.iml" afterDir="false" />
+    <list default="true" id="2f29820a-9804-4812-9b6e-6d4c72e92726" name="Changes" comment="corrected comments">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/data/alpaca_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/data/alpaca_data.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/logs/engine.log" beforeDir="false" afterPath="$PROJECT_DIR$/storage/logs/engine.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/logs/engine.log.1" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/logs/engine.log.2" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/logs/engine.log.3" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/logs/wf/20250926_134643_wf.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/logs/wf/20250926_135046_wf.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/storage/params/model_builder_profiles.json" beforeDir="false" afterPath="$PROJECT_DIR$/storage/params/model_builder_profiles.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/storage/portfolios/Default.json" beforeDir="false" afterPath="$PROJECT_DIR$/storage/portfolios/Default.json" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -31,7 +25,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="codex/fix-api-rate-limit-errors" />
+        <entry key="$PROJECT_DIR$" value="codex/implement-purchase-sizing-based-on-risk/reward" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -59,24 +53,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "Buy-the-dip",
-    "last_opened_file_path": "/Users/holden/PycharmProjects/alpaca_trader/storage/Good Sims",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "org.jetbrains.plugins.github.ui.GithubSettingsConfigurable",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;#74 on codex/add-quick-sanity-test-butto…ector&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/holden/PycharmProjects/alpaca_trader/storage/Good Sims&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;org.jetbrains.plugins.github.ui.GithubSettingsConfigurable&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/storage/Good Sims" />
@@ -126,30 +120,9 @@
       <workItem from="1759935682728" duration="9231000" />
       <workItem from="1760016205226" duration="466000" />
       <workItem from="1760016772162" duration="2298000" />
-    </task>
-    <task id="LOCAL-00012" summary="Auto bounds for initial model params BETA">
-      <option name="closed" value="true" />
-      <created>1757557630611</created>
-      <option name="number" value="00012" />
-      <option name="presentableId" value="LOCAL-00012" />
-      <option name="project" value="LOCAL" />
-      <updated>1757557630611</updated>
-    </task>
-    <task id="LOCAL-00013" summary="started new base model + tuning architechture">
-      <option name="closed" value="true" />
-      <created>1757607751478</created>
-      <option name="number" value="00013" />
-      <option name="presentableId" value="LOCAL-00013" />
-      <option name="project" value="LOCAL" />
-      <updated>1757607751478</updated>
-    </task>
-    <task id="LOCAL-00014" summary="setup for storing and fetching historical data from wiki and alpaca. need to confirm local storage and seperate metadata and historical data fetching">
-      <option name="closed" value="true" />
-      <created>1757610441529</created>
-      <option name="number" value="00014" />
-      <option name="presentableId" value="LOCAL-00014" />
-      <option name="project" value="LOCAL" />
-      <updated>1757610441529</updated>
+      <workItem from="1760359546884" duration="576000" />
+      <workItem from="1760390899945" duration="3924000" />
+      <workItem from="1760462006694" duration="599000" />
     </task>
     <task id="LOCAL-00015" summary="working metadata filter for portfolio data fetching">
       <option name="closed" value="true" />
@@ -519,7 +492,31 @@
       <option name="project" value="LOCAL" />
       <updated>1759850003942</updated>
     </task>
-    <option name="localTasksCounter" value="61" />
+    <task id="LOCAL-00061" summary="updated weights profile defaults">
+      <option name="closed" value="true" />
+      <created>1760035284387</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1760035284387</updated>
+    </task>
+    <task id="LOCAL-00062" summary="updated weights profile defaults">
+      <option name="closed" value="true" />
+      <created>1760035806277</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1760035806277</updated>
+    </task>
+    <task id="LOCAL-00063" summary="corrected comments">
+      <option name="closed" value="true" />
+      <created>1760039468004</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1760039468004</updated>
+    </task>
+    <option name="localTasksCounter" value="64" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -537,8 +534,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="refactor storage and fix portfolio page error" />
-    <MESSAGE value="fixed portfolio storage and loading in portfolios page" />
     <MESSAGE value="fixed portfolio loading in strategy adapter. problem loading historical when training" />
     <MESSAGE value="fixed loading problem, now not training" />
     <MESSAGE value="fixed memory_cache.py time error" />
@@ -562,6 +557,8 @@
     <MESSAGE value="changed scoring to verify engine use of penalty caps. zero penalty test" />
     <MESSAGE value="ea train inspector started. EA logger updated with session timeframe data. framework there but not working." />
     <MESSAGE value="removed dead file" />
-    <option name="LAST_COMMIT_MESSAGE" value="removed dead file" />
+    <MESSAGE value="updated weights profile defaults" />
+    <MESSAGE value="corrected comments" />
+    <option name="LAST_COMMIT_MESSAGE" value="corrected comments" />
   </component>
 </project>

@@ -105,6 +105,8 @@ def _dbg(msg: str):
 
 ENABLE_RR_AWARE_BACKFILL = True
 ENABLE_LEGACY_SIZING_BACKFILL = True
+# Toggle to align parity checks with the training scope that EA metrics report.
+USE_TRAIN_SCOPE_FOR_PARITY = True
 
 RR_SIZING_KEYS = {
     "size_mode",
@@ -232,6 +234,256 @@ def _rescale_test_curve(
 
 # ---------- helpers ----------
 
+
+def _curve_nav_stats(curve: pd.DataFrame) -> Dict[str, Optional[float]]:
+    stats: Dict[str, Optional[float]] = {
+        "start": None,
+        "end": None,
+        "nav": None,
+        "unit": None,
+    }
+    if {"equity"}.issubset(curve.columns) and not curve.empty:
+        try:
+            equity_vals = curve["equity"].astype(float)
+        except Exception:
+            return stats
+        start = float(equity_vals.iloc[0])
+        end = float(equity_vals.iloc[-1])
+        stats["start"] = start
+        stats["end"] = end
+        if start:
+            stats["nav"] = end / start
+        stats["unit"] = "norm" if start and abs(start - 1.0) <= 1e-3 else "dollars"
+    return stats
+
+
+def _parity_scope_summary(
+    expected_nav_end: float,
+    train_stats: Dict[str, Optional[float]],
+    combined_stats: Dict[str, Optional[float]],
+) -> Dict[str, Any]:
+    """Decide which curve scope should anchor parity comparisons."""
+
+    def _nav_diff(stats: Dict[str, Optional[float]]) -> float:
+        nav_val = stats.get("nav")
+        if nav_val is None or not math.isfinite(nav_val):
+            return float("inf")
+        return abs(nav_val - expected_nav_end)
+
+    scope = "combined"
+    chosen = combined_stats
+    reason = "combined_default"
+
+    train_diff = _nav_diff(train_stats)
+    combined_diff = _nav_diff(combined_stats)
+
+    if USE_TRAIN_SCOPE_FOR_PARITY and math.isfinite(expected_nav_end):
+        if train_diff < float("inf") and (combined_diff == float("inf") or train_diff <= combined_diff + 5e-4):
+            scope = "train"
+            chosen = train_stats
+            reason = "train_preferred"
+
+    if (chosen.get("nav") is None or not math.isfinite(chosen.get("nav") or math.nan)) and train_stats.get("nav") is not None:
+        scope = "train"
+        chosen = train_stats
+        reason = "train_fallback"
+    if (chosen.get("nav") is None or not math.isfinite(chosen.get("nav") or math.nan)) and combined_stats.get("nav") is not None:
+        scope = "combined"
+        chosen = combined_stats
+        reason = "combined_fallback"
+
+    return {
+        "scope": scope,
+        "scope_reason": reason,
+        "nav": chosen.get("nav"),
+        "start": chosen.get("start"),
+        "end": chosen.get("end"),
+        "unit": chosen.get("unit") or ("norm" if chosen.get("start") and abs(chosen.get("start") - 1.0) <= 1e-3 else "dollars"),
+        "diff": _nav_diff(chosen),
+        "train_nav": train_stats.get("nav"),
+        "combined_nav": combined_stats.get("nav"),
+        "train_start": train_stats.get("start"),
+        "train_end": train_stats.get("end"),
+        "combined_end": combined_stats.get("end"),
+    }
+
+
+def _quick_sanity_checks(
+    *,
+    selected_row: pd.Series,
+    combined_curve: pd.DataFrame,
+    train_curve: pd.DataFrame,
+    test_curve: pd.DataFrame,
+    starting_equity: float,
+    missing_sizing_keys: List[str],
+    logged_sizing_keys: List[str],
+    eval_df: pd.DataFrame,
+    upto_gen: int,
+    strategy: str,
+) -> Dict[str, Any]:
+    checks: List[Dict[str, Any]] = []
+    mk = lambda label, passed, message: checks.append(
+        {"label": label, "passed": passed, "message": message}
+    )
+    train_stats = _curve_nav_stats(train_curve)
+    combined_stats = _curve_nav_stats(combined_curve)
+    reported_total_return = float(selected_row.get("total_return", 0.0) or 0.0)
+    expected_nav_end = 1.0 + reported_total_return
+    injected_size_fields = [k for k in missing_sizing_keys if str(k).startswith("size_")]
+    scope_summary = _parity_scope_summary(expected_nav_end, train_stats, combined_stats)
+    scope_label = scope_summary.get("scope") or "combined"
+    nav_replayed_end = scope_summary.get("nav")
+    diag: Dict[str, Any] = {
+        "reported_total_return": reported_total_return,
+        "expected_nav_end": expected_nav_end,
+        "nav_replayed_end": nav_replayed_end,
+        "nav_replayed_end_train": train_stats.get("nav"),
+        "nav_replayed_end_combined": combined_stats.get("nav"),
+        "parity_scope": scope_label,
+        "parity_scope_reason": scope_summary.get("scope_reason"),
+        "injected_size_fields": injected_size_fields,
+        "logged_sizing_keys": logged_sizing_keys,
+    }
+
+    if nav_replayed_end is None or not math.isfinite(expected_nav_end):
+        mk("Parity", False, "Missing replayed curve to compare.")
+    else:
+        diff = abs(nav_replayed_end - expected_nav_end)
+        if diff < 1e-3:
+            mk(
+                "Parity",
+                True,
+                f"OK ({nav_replayed_end:.3f} vs {expected_nav_end:.3f}) [{scope_label}]",
+            )
+        else:
+            mk(
+                "Parity",
+                False,
+                (
+                    f"{scope_label.title()} scope expected {expected_nav_end:.4f}, got {nav_replayed_end:.4f}. "
+                    f"Injected: {json.dumps(injected_size_fields)}."
+                ),
+            )
+
+    train_end_equity: Optional[float] = None
+    if {"equity"}.issubset(train_curve.columns) and not train_curve.empty:
+        train_end_equity = float(train_curve["equity"].astype(float).iloc[-1])
+    test_start_equity: Optional[float] = None
+    if {"equity"}.issubset(test_curve.columns) and not test_curve.empty:
+        test_start_equity = float(test_curve["equity"].astype(float).iloc[0])
+    unit = scope_summary.get("unit") or "dollars"
+    diag.update(
+        {
+            "train_end_equity": train_end_equity,
+            "test_start_equity": test_start_equity,
+            "unit": unit,
+        }
+    )
+    if train_end_equity is not None and test_start_equity is not None:
+        diff_val = test_start_equity - train_end_equity
+        tol = 1e-6 if unit == "norm" else 0.01
+        fmt = f"Δ {diff_val:.6f}" if unit == "norm" else f"Δ ${diff_val:.2f}"
+        if abs(diff_val) <= tol:
+            mk("Train→Test", True, f"OK ({fmt})")
+        else:
+            mk(
+                "Train→Test",
+                False,
+                f"{fmt}. Test segment likely re-normalized or scaled twice at the boundary.",
+            )
+    else:
+        mk("Train→Test", True, "No test segment to compare.")
+
+    start_capital_source = "meta"
+    start_capital = float(starting_equity) if math.isfinite(float(starting_equity)) else 10000.0
+    if not math.isfinite(float(starting_equity)):
+        start_capital_source = "default_10000"
+    expected_end_dollars = start_capital * expected_nav_end
+    scope_end_equity = scope_summary.get("end")
+    equity_dollars_end: Optional[float] = None
+    if scope_end_equity is not None:
+        equity_dollars_end = float(scope_end_equity)
+    combined_end_equity: Optional[float] = None
+    if combined_stats.get("end") is not None:
+        combined_end_equity = float(combined_stats.get("end"))
+    diag.update(
+        {
+            "start_capital_used": start_capital,
+            "start_capital_source": start_capital_source,
+            "expected_end_dollars": expected_end_dollars,
+            "equity_dollars_end": equity_dollars_end,
+            "equity_dollars_end_combined": combined_end_equity,
+        }
+    )
+    if equity_dollars_end is None:
+        mk(
+            "Amplitude",
+            False,
+            f"Missing {scope_label} equity series to compare.",
+        )
+    else:
+        diff_amp = abs(equity_dollars_end - expected_end_dollars)
+        if diff_amp <= 25.0:
+            mk(
+                "Amplitude",
+                True,
+                (
+                    f"OK (${equity_dollars_end:,.2f} vs ${expected_end_dollars:,.2f}) "
+                    f"[{scope_label} scope]"
+                ),
+            )
+        else:
+            mk(
+                "Amplitude",
+                False,
+                (
+                    f"Expected ${expected_end_dollars:,.2f}, got ${equity_dollars_end:,.2f} "
+                    f"[{scope_label} scope]. "
+                    "Plot is not using nav_norm * start_capital or uses per-trade P&L instead of NAV."
+                ),
+            )
+
+    payload_hashes_by_gen: Dict[str, str] = {}
+    if "gen" in eval_df:
+        try:
+            gens_iter = sorted({int(g) for g in pd.Series(eval_df["gen"]).dropna().astype(int)})
+        except Exception:
+            gens_iter = sorted(set(eval_df["gen"]))
+        for g in gens_iter:
+            try:
+                if int(g) > int(upto_gen):
+                    continue
+            except Exception:
+                pass
+            G = eval_df[eval_df["gen"] == g]
+            if G.empty:
+                continue
+            row = G.loc[G["total_return"].idxmax()]
+            _, params_base, _ = _row_params_for_payload(row)
+            payload, _, _ = _build_strategy_params_payload(strategy, params_base, disable_warmup=True)
+            hash_key = hashlib.md5(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
+            payload_hashes_by_gen[str(int(g))] = hash_key
+    diag["payload_hashes_by_gen"] = payload_hashes_by_gen
+    distinct = len(set(payload_hashes_by_gen.values()))
+    total = len(payload_hashes_by_gen)
+    if total == 0:
+        mk("Per-gen uniqueness", True, "OK (no best-by-gen payloads)")
+    elif distinct == total:
+        mk("Per-gen uniqueness", True, f"OK ({distinct} distinct hashes)")
+    else:
+        mk(
+            "Per-gen uniqueness",
+            False,
+            (
+                f"Duplicate payload hashes ({distinct} distinct of {total}). "
+                "Selection/caching reusing the same row/payload across gens."
+            ),
+        )
+
+    diagnostics_json = json.dumps(diag, indent=2, sort_keys=True)
+    return {"checks": checks, "diagnostics": diag, "diagnostics_json": diagnostics_json}
+
+
 # --- display-only helper ---
 def _ymd(x) -> str:
     """Return YYYY-MM-DD for display only; do not mutate the original value."""
@@ -288,6 +540,36 @@ def _sanitize_obj_cols(df: pd.DataFrame) -> pd.DataFrame:
             out[col] = out[col].apply(lambda x: json.dumps(x, sort_keys=True) if isinstance(x, (dict, list)) else x)
     return out
 
+
+def _json_dumps_safe(value: Any) -> str:
+    """Serialize dict/list payloads deterministically for log tables."""
+    if isinstance(value, str):
+        return value
+    if value is None:
+        return "{}"
+    if isinstance(value, (dict, list)):
+        try:
+            return json.dumps(value, sort_keys=True, default=str)
+        except Exception:
+            return json.dumps({}, sort_keys=True)
+    return json.dumps(value, sort_keys=True, default=str)
+
+
+def _parse_json_dict(value: Any) -> Dict[str, Any]:
+    """Return a shallow dict parsed from JSON/dict payloads."""
+    if isinstance(value, dict):
+        return dict(value)
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return {}
+        try:
+            parsed = json.loads(text)
+        except Exception:
+            return {}
+        return dict(parsed) if isinstance(parsed, dict) else {}
+    return {}
+
 def _eval_table(df: pd.DataFrame) -> pd.DataFrame:
     """Return tidy table of individual evaluations with metrics.
     NOTE: JSON-encode 'params' and any dict/list columns to avoid caching/hashing issues.
@@ -305,6 +587,12 @@ def _eval_table(df: pd.DataFrame) -> pd.DataFrame:
             lambda d: json.dumps(d, sort_keys=True) if isinstance(d, dict) else (d if isinstance(d, str) else "{}")
         )
         out = out.drop(columns=["params"])
+    if "resolved_params" in out.columns:
+        out["resolved_params_json"] = out["resolved_params"].apply(_json_dumps_safe)
+        out = out.drop(columns=["resolved_params"])
+    if "sizing_params" in out.columns:
+        out["sizing_params_json"] = out["sizing_params"].apply(_json_dumps_safe)
+        out = out.drop(columns=["sizing_params"])
     out = _sanitize_obj_cols(out)
     # Make sure 'gen' is numeric
     if "gen" in out.columns:
@@ -319,11 +607,28 @@ def _gen_end_table(df: pd.DataFrame) -> pd.DataFrame:
     return g.reset_index(drop=True) if not g.empty else pd.DataFrame()
 
 def _row_params(row: pd.Series) -> Dict[str, Any]:
-    pj = row.get("params_json")
-    try:
-        return json.loads(pj) if isinstance(pj, str) else {}
-    except Exception:
-        return {}
+    return _parse_json_dict(row.get("params_json"))
+
+
+def _row_resolved_params(row: pd.Series) -> Dict[str, Any]:
+    return _parse_json_dict(row.get("resolved_params_json") or row.get("resolved_params"))
+
+
+def _row_sizing_params(row: pd.Series) -> Dict[str, Any]:
+    return _parse_json_dict(row.get("sizing_params_json") or row.get("sizing_params"))
+
+
+def _row_params_for_payload(row: pd.Series) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    """Return raw, resolved+sizing merged params for replay calls."""
+    raw = _row_params(row)
+    resolved = _row_resolved_params(row)
+    sizing = _row_sizing_params(row)
+    merged: Dict[str, Any] = dict(raw)
+    if resolved:
+        merged.update(resolved)
+    if sizing:
+        merged.update(sizing)
+    return raw, merged, sizing
 
 
 def _strategy_module_name(strategy_dotted: str) -> str:
@@ -1132,10 +1437,14 @@ def _plot_gen_topK(
     fig = go.Figure()
     flat_warn = False
     for _, row in G.iterrows():
-        params = _row_params(row)
+        _params_raw, params_base, sizing_logged = _row_params_for_payload(row)
         payload_preview, payload_label, payload_missing = _build_strategy_params_payload(
-            strategy, params, disable_warmup=True
+            strategy, params_base, disable_warmup=True
         )
+        params_for_curve = dict(params_base)
+        if payload_label:
+            for key in payload_missing:
+                params_for_curve[key] = payload_preview.get(key)
         if _is_debug_mode():
             try:
                 payload_hash = hashlib.sha1(
@@ -1151,6 +1460,7 @@ def _plot_gen_topK(
                     "payload_hash": payload_hash,
                     "backfill": payload_label,
                     "missing": payload_missing,
+                    "logged_sizing_keys": sorted(sizing_logged.keys()),
                 }
             )
         ec_train = run_equity_curve(
@@ -1159,7 +1469,7 @@ def _plot_gen_topK(
             train_start,
             train_end,
             starting_equity,
-            params,
+            params_for_curve,
             disable_warmup=True,
         )
         end_equity = ec_train["equity"].iloc[-1] if not ec_train.empty else starting_equity
@@ -1169,7 +1479,7 @@ def _plot_gen_topK(
             test_start,
             test_end,
             end_equity,
-            params,
+            params_for_curve,
             disable_warmup=False,
         )
         if not ec_test.empty:
@@ -1226,10 +1536,14 @@ def _plot_leaders_through_gen(
         if G.empty:
             continue
         row = G.loc[G["total_return"].idxmax()]  # best by return in that gen
-        params = _row_params(row)
+        _params_raw, params_base, sizing_logged = _row_params_for_payload(row)
         payload_preview, payload_label, payload_missing = _build_strategy_params_payload(
-            strategy, params, disable_warmup=True
+            strategy, params_base, disable_warmup=True
         )
+        params_for_curve = dict(params_base)
+        if payload_label:
+            for key in payload_missing:
+                params_for_curve[key] = payload_preview.get(key)
         if _is_debug_mode():
             try:
                 payload_hash = hashlib.sha1(
@@ -1245,6 +1559,7 @@ def _plot_leaders_through_gen(
                     "payload_hash": payload_hash,
                     "backfill": payload_label,
                     "missing": payload_missing,
+                    "logged_sizing_keys": sorted(sizing_logged.keys()),
                 }
             )
         ec_train = run_equity_curve(
@@ -1253,7 +1568,7 @@ def _plot_leaders_through_gen(
             train_start,
             train_end,
             starting_equity,
-            params,
+            params_for_curve,
             disable_warmup=True,
         )
         end_equity = ec_train["equity"].iloc[-1] if not ec_train.empty else starting_equity
@@ -1263,7 +1578,7 @@ def _plot_leaders_through_gen(
             test_start,
             test_end,
             end_equity,
-            params,
+            params_for_curve,
             disable_warmup=False,
         )
         if not ec_test.empty:
@@ -1328,7 +1643,15 @@ def main():
     st.set_page_config(page_title=DEFAULT_PAGE_TITLE, layout="wide")
     st.title(DEFAULT_PAGE_TITLE)
 
-    debug_sizing = st.checkbox("Debug sizing drift", value=False)
+    debug_col, quick_col = st.columns([1, 1])
+    with debug_col:
+        debug_sizing = st.checkbox("Debug sizing drift", value=False)
+    with quick_col:
+        quick_sanity_trigger = st.button(
+            "Quick Sanity Test", key="ea_quick_sanity_btn", use_container_width=True
+        )
+    quick_panel_placeholder = st.container()
+
     try:
         st.session_state["ea_inspector_debug_mode"] = bool(debug_sizing)
     except Exception:
@@ -1522,38 +1845,47 @@ def main():
 
         if selected_row is None:
             st.warning("Select an individual to review their trades.")
+            quick_panel_placeholder.empty()
         else:
-            params = _row_params(selected_row)
-            if not params:
+            params_raw, params_base, sizing_logged = _row_params_for_payload(selected_row)
+            if not (params_raw or params_base):
                 st.warning("Parameters missing for this individual; cannot regenerate trades.")
             else:
-                params_raw = dict(params)
+                logged_sizing_keys = sorted(sizing_logged.keys())
                 params_preview, backfill_label, missing_keys = _build_strategy_params_payload(
                     strategy,
-                    params_raw,
+                    params_base,
                     disable_warmup=True,
                 )
-                params_for_calls = dict(params_raw)
+                params_for_calls = dict(params_base)
                 if backfill_label:
                     for key in missing_keys:
                         params_for_calls[key] = params_preview.get(key)
                     if backfill_label == "legacy":
                         st.info(
-                            "Replaying with legacy sizing semantics because the EA row predates risk/reward-aware sizing fields.",
+                            (
+                                "Replaying with legacy sizing defaults because the EA row predates risk/reward-aware sizing fields. "
+                                f"Filled: {', '.join(sorted(missing_keys)) or 'none'}."
+                            ),
                             icon="⚠️",
                         )
                     elif backfill_label == "rr_defaults":
                         st.info(
-                            "Filled missing risk/reward sizing fields with ATR defaults recorded in the engine so replay stays consistent with the EA run.",
+                            (
+                                "Filled missing risk/reward sizing fields with ATR defaults recorded in the engine so replay stays consistent with the EA run. "
+                                f"Filled: {', '.join(sorted(missing_keys)) or 'none'}."
+                            ),
                             icon="⚠️",
                         )
                 if debug_sizing:
                     st.write(
                         {
                             "logged_param_keys": sorted(params_raw.keys()),
+                            "merged_param_keys": sorted(params_base.keys()),
                             "payload_keys": sorted(params_preview.keys()),
                             "missing_sizing_keys": missing_keys,
                             "backfill_label": backfill_label,
+                            "logged_sizing_keys": logged_sizing_keys,
                         }
                     )
                     st.write(
@@ -1562,6 +1894,14 @@ def main():
                     )
 
                 params = params_for_calls
+
+                row_sig = (
+                    str(selected_row.get("gen", "")),
+                    str(selected_row.get("idx", selected_idx)),
+                )
+                if st.session_state.get("ea_quick_sanity_row_sig") != row_sig:
+                    st.session_state["ea_quick_sanity_row_sig"] = row_sig
+                    st.session_state.pop("ea_quick_sanity_result", None)
 
                 train_trades = load_trades(
                     strategy,
@@ -1634,17 +1974,19 @@ def main():
                     )
                 reported_total_return = float(selected_row.get("total_return", 0.0) or 0.0)
                 expected_nav_end = 1.0 + reported_total_return
-                nav_replayed_end: Optional[float] = None
-                if {"date", "equity"}.issubset(combined_curve.columns) and not combined_curve.empty:
-                    start_equity_val = float(combined_curve["equity"].iloc[0])
-                    end_equity_val = float(combined_curve["equity"].iloc[-1])
-                    if start_equity_val != 0:
-                        nav_replayed_end = end_equity_val / start_equity_val
+                train_stats = _curve_nav_stats(train_curve)
+                combined_stats = _curve_nav_stats(combined_curve)
+                scope_summary = _parity_scope_summary(expected_nav_end, train_stats, combined_stats)
+                nav_replayed_end = scope_summary.get("nav")
+                scope_label = scope_summary.get("scope") or "combined"
                 if debug_sizing:
                     st.write(
                         {
                             "expected_nav_end": expected_nav_end,
-                            "nav_replayed_end": nav_replayed_end,
+                            "nav_scope": nav_replayed_end,
+                            "nav_train": train_stats.get("nav"),
+                            "nav_combined": combined_stats.get("nav"),
+                            "parity_scope": scope_label,
                         }
                     )
                 parity_eps = 1e-3
@@ -1654,9 +1996,42 @@ def main():
                     and abs(nav_replayed_end - expected_nav_end) > parity_eps
                 ):
                     st.warning(
-                        f"Replay/metrics mismatch: expected {expected_nav_end:.4f}, got {nav_replayed_end:.4f}. This EA row may still miss other fields.",
+                        (
+                            f"Replay/metrics mismatch ({scope_label} scope): expected {expected_nav_end:.4f}, "
+                            f"got {nav_replayed_end:.4f}. This EA row may still miss other fields."
+                        ),
                         icon="⚠️",
                     )
+
+                quick_result = st.session_state.get("ea_quick_sanity_result")
+                if quick_sanity_trigger:
+                    quick_result = _quick_sanity_checks(
+                        selected_row=selected_row,
+                        combined_curve=combined_curve,
+                        train_curve=train_curve,
+                        test_curve=test_curve,
+                        starting_equity=starting_equity,
+                        missing_sizing_keys=missing_keys,
+                        logged_sizing_keys=logged_sizing_keys,
+                        eval_df=eval_df,
+                        upto_gen=int(st.session_state.ea_inspect_gen),
+                        strategy=strategy,
+                    )
+                    st.session_state["ea_quick_sanity_result"] = quick_result
+                if quick_result:
+                    with quick_panel_placeholder:
+                        st.markdown("**Quick Sanity Test**")
+                        for chk in quick_result["checks"]:
+                            icon = "✅" if chk["passed"] else "❌"
+                            st.markdown(f"{icon} {chk['label']} — {chk['message']}")
+                        copy_payload = json.dumps(quick_result["diagnostics_json"])
+                        st.markdown(
+                            f"<button type='button' class='quick-sanity-copy' onclick='navigator.clipboard.writeText({copy_payload});'>Copy diagnostics</button>",
+                            unsafe_allow_html=True,
+                        )
+                        st.code(quick_result["diagnostics_json"], language="json")
+                else:
+                    quick_panel_placeholder.empty()
 
                 if not window_frames:
                     st.info("No trades were generated for the selected individual and windows.")

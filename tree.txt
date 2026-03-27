@@ -1,0 +1,183 @@
+alpaca_trader/
+├── data/
+│   ├── indexes/
+│   ├── logs/
+│   ├── models/
+│   ├── portfolio_models/
+│   └── portfolios/
+├── docs/
+│   ├── data_model_flow.md
+│   ├── ea_walkforward_report.md
+│   └── strategy_adapter_inputs.md
+├── Initial Files/
+│   ├── alpaca2fa
+│   ├── project_scaffold_min_clean.py
+│   └── starter_impl_v1.zip
+├── pages/
+│   ├── 1_Portfolios.py
+│   ├── 2_Strategy_Adapter.py
+│   ├── 3_Walkforward.py
+│   ├── 4_Ticker_Selector_and_Tuning.py
+│   └── 5_Simulate_Portfolio.py
+├── Pages_UNUSED/
+│   ├── 1_Live_KPIs.py
+│   └── 2_Base_Model_Lab.py
+├── scripts/
+│   ├── ea_log_inspect.py
+│   ├── ea_score_audit.py
+│   ├── ea_weight_tuner.py
+│   └── wf_result_inspect.py
+├── src/
+│   ├── backtest/
+│   │   ├── engine.py
+│   │   └── metrics.py
+│   ├── data/
+│   │   ├── __init__.py
+│   │   ├── _tz_utils.py
+│   │   ├── alpaca_data.py
+│   │   ├── cache.py
+│   │   ├── loader.py
+│   │   ├── memory_cache.py
+│   │   ├── portfolio_prefetch.py
+│   │   ├── universe.py
+│   │   └── yf.py
+│   ├── models/
+│   │   ├── atr_breakout.py
+│   │   ├── base_model_utils.py
+│   │   ├── general_trainer.py
+│   │   └── strategy_adapter.py
+│   ├── optimization/
+│   │   ├── evolutionary.py
+│   │   └── walkforward.py
+│   ├── store/
+│   │   ├── ohlcv/
+│   │   ├── portfolio_models/
+│   │   ├── portfolios/
+│   │   ├── ticker_meta/
+│   │   ├── training_logs/
+│   │   └── tuning_profiles/
+│   ├── tuning/
+│   │   ├── __init__.py
+│   │   ├── auto_bounds.py
+│   │   └── evolve.py
+│   ├── universe/
+│   │   └── indexes.py
+│   ├── utils/
+│   │   ├── artifacts.py
+│   │   ├── holdout_chart.py
+│   │   ├── plotting.py
+│   │   ├── progress.py
+│   │   ├── st_safe.py
+│   │   └── training_logger.py
+│   ├── __init__.py
+│   └── storage.py
+├── storage/
+│   ├── base_models/
+│   │   ├── metrics_cache/
+│   │   ├── trend_breakout_v2__CommunicationServicesPortfolio__2025-09-12.json
+│   │   └── trend_breakout_v2__Tech_Top_10_Portfolio__2025-09-13.json
+│   ├── cache/
+│   ├── config/
+│   │   └── ea_fitness.json
+│   ├── data/
+│   │   └── ohlcv/
+│   │       ├── alpaca/
+│   │       │   ├── AAPL/
+│   │       │   ├── ACN/
+│   │       │   ├── ADBE/
+│   │       │   ├── AKAM/
+│   │       │   ├── AMD/
+│   │       │   ├── AMZN/
+│   │       │   ├── APH/
+│   │       │   ├── GOOG/
+│   │       │   ├── META/
+│   │       │   ├── MSFT/
+│   │       │   └── TSLA/
+│   │       └── yahoo/
+│   │           └── MSFT/
+│   ├── logs/
+│   │   ├── ea/
+│   │   │   ├── 20250926_130005_ea.jsonl
+│   │   │   ├── 20250926_131606_ea.jsonl
+│   │   │   ├── 20250926_133058_ea.jsonl
+│   │   │   ├── 20250926_133610_ea.jsonl
+│   │   │   ├── 20250926_133913_ea.jsonl
+│   │   │   ├── 20250926_134628_ea.jsonl
+│   │   │   ├── 20250926_135018_ea.jsonl
+│   │   │   ├── 20250927_085330_ea.jsonl
+│   │   │   ├── 20250927_085721_ea.jsonl
+│   │   │   ├── 20250927_085754_ea.jsonl
+│   │   │   ├── 20250927_085953_ea.jsonl
+│   │   │   ├── 20250927_090039_ea.jsonl
+│   │   │   ├── 20250927_090153_ea.jsonl
+│   │   │   ├── 20250927_090602_ea.jsonl
+│   │   │   ├── 20250927_092610_ea.jsonl
+│   │   │   ├── 20250927_111045_ea.jsonl
+│   │   │   ├── 20250927_111156_ea.jsonl
+│   │   │   ├── 20250927_111636_ea.jsonl
+│   │   │   ├── 20250927_111848_ea.jsonl
+│   │   │   ├── 20250927_112757_ea.jsonl
+│   │   │   ├── 20250927_113104_ea.jsonl
+│   │   │   ├── 20250927_113310_ea.jsonl
+│   │   │   ├── 20250927_113349_ea.jsonl
+│   │   │   ├── 20250927_113911_ea.jsonl
+│   │   │   ├── 20250927_114045_ea.jsonl
+│   │   │   ├── 20250927_114119_ea.jsonl
+│   │   │   ├── 20250927_114249_ea.jsonl
+│   │   │   ├── 20250927_114304_ea.jsonl
+│   │   │   ├── 20250927_114447_ea.jsonl
+│   │   │   ├── 20250927_115029_ea.jsonl
+│   │   │   ├── 20250927_115117_ea.jsonl
+│   │   │   ├── 20250927_120314_ea.jsonl
+│   │   │   ├── 20250927_120546_ea.jsonl
+│   │   │   ├── 20250927_121825_ea.jsonl
+│   │   │   ├── 20250927_122544_ea.jsonl
+│   │   │   └── 20250928_064724_ea.jsonl
+│   │   └── wf/
+│   │       ├── 20250926_134643_wf.json
+│   │       └── 20250926_135046_wf.json
+│   ├── params/
+│   │   └── ea/
+│   │       └── Default__src.models.atr_breakout.json
+│   ├── portfolio_models/
+│   ├── portfolios/
+│   │   ├── Default.json
+│   │   └── my_portfolio_002.json
+│   ├── reports/
+│   ├── simulations/
+│   └── universe/
+│       ├── members_enriched__nasdaq100__2025-09-13.parquet
+│       ├── members_enriched__sp500__2025-09-13.parquet
+│       ├── members_enriched__sp500__2025-09-25.parquet
+│       ├── members_enriched__sp500_nasdaq100__2025-09-11.parquet
+│       ├── members_enriched__sp500_nasdaq100__2025-09-12.parquet
+│       ├── members_enriched__sp500_nasdaq100__2025-09-13.parquet
+│       ├── members_enriched__sp500_nasdaq100__2025-09-17.parquet
+│       ├── members_enriched__sp500_nasdaq100__2025-09-25.parquet
+│       ├── nasdaq100.json
+│       └── sp500.json
+├── tests/
+│   ├── _loader_test_utils.py
+│   ├── conftest.py
+│   ├── scan_streamlit_usage.py
+│   ├── test_cache_roundtrip.py
+│   ├── test_data_pipeline.py
+│   ├── test_ea_logger.py
+│   ├── test_evolutionary_fitness.py
+│   ├── test_loader_aware.py
+│   ├── test_loader_naive.py
+│   ├── test_strategy_adapter_pipeline.py
+│   └── test_walkforward.py
+├── .env
+├── ea_test.log
+├── Features.txt
+├── Home.py
+├── info.txt
+├── live_checklist.md
+├── print_tree.py
+├── README.md
+├── requirements-dev.txt
+├── requirements.txt
+├── training.log
+├── tree.txt
+└── walkforward.jsonl

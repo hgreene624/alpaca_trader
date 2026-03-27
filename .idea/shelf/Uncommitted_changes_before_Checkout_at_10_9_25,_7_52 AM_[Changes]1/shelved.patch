@@ -1,0 +1,46 @@
+Index: storage/config/ea_fitness.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>{\n  \"use_normalized_scoring\": true,\n\n  \"alpha_cagr\": 0.4835,\n  \"beta_calmar\": 0.0011,\n  \"gamma_sharpe\": 0.0124,\n  \"delta_total_return\": 0.5029,\n  \"calmar_cap\": 3.0,\n\n  \"holding_penalty_weight\": 0.05,\n  \"trade_rate_penalty_weight\": 0.02,\n  \"penalty_cap\": 0.15,\n\n  \"min_holding_days\": 3.0,\n  \"max_holding_days\": 30.0,\n\n  \"trade_rate_min\": 5.0,\n  \"trade_rate_max\": 50.0,\n  \"rate_penalize_upper\": false,\n\n  \"elite_by_return_frac\": 0.10\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/storage/config/ea_fitness.json b/storage/config/ea_fitness.json
+--- a/storage/config/ea_fitness.json	(revision a854ace0b73131940554a41a56ef9430c71cd463)
++++ b/storage/config/ea_fitness.json	(date 1760021236786)
+@@ -1,22 +1,22 @@
+ {
+   "use_normalized_scoring": true,
+ 
+-  "alpha_cagr": 0.4835,
+-  "beta_calmar": 0.0011,
+-  "gamma_sharpe": 0.0124,
+-  "delta_total_return": 0.5029,
+-  "calmar_cap": 3.0,
++  "alpha_cagr": 0.35,
++  "beta_calmar": 0.25,
++  "gamma_sharpe": 0.15,
++  "delta_total_return": 0.4,
++  "calmar_cap": 4.0,
+ 
+-  "holding_penalty_weight": 0.05,
+-  "trade_rate_penalty_weight": 0.02,
+-  "penalty_cap": 0.15,
++  "holding_penalty_weight": 0.06,
++  "trade_rate_penalty_weight": 0.04,
++  "penalty_cap": 0.20,
+ 
+-  "min_holding_days": 3.0,
++  "min_holding_days": 2.0,
+   "max_holding_days": 30.0,
+ 
+-  "trade_rate_min": 5.0,
+-  "trade_rate_max": 50.0,
+-  "rate_penalize_upper": false,
++  "trade_rate_min": 8.0,
++  "trade_rate_max": 40.0,
++  "rate_penalize_upper": true,
+ 
+   "elite_by_return_frac": 0.10
+ }
+\ No newline at end of file

@@ -1,0 +1,119 @@
+{
+  "name": "my_portfolio_DJ_5",
+  "tickers": [
+    "AAL",
+    "ALK",
+    "CAR",
+    "CHRW",
+    "CSX"
+  ],
+  "meta": {
+    "source": "1_Portfolios",
+    "index_key": "Dow Jones Transportation Average",
+    "filters": {
+      "search": "",
+      "sectors": [],
+      "min_median_close_priors": 0.0,
+      "min_median_dollar_vol_priors": 0.0
+    },
+    "windows": {
+      "priors": [
+        "2020-10-08",
+        "2025-10-07"
+      ]
+    },
+    "count": 5,
+    "last_prefetch_at": "2025-10-07T00:51:02+00:00",
+    "per_symbol_ranges": {
+      "AAL": {
+        "start": "2020-10-08",
+        "end": "2025-10-06"
+      },
+      "ALK": {
+        "start": "2020-10-08",
+        "end": "2025-10-06"
+      },
+      "CAR": {
+        "start": "2020-10-08",
+        "end": "2025-10-06"
+      },
+      "CHRW": {
+        "start": "2020-10-08",
+        "end": "2025-10-06"
+      },
+      "CSX": {
+        "start": "2020-10-08",
+        "end": "2025-10-06"
+      }
+    },
+    "data_cache_root": "storage/data/ohlcv",
+    "data_shards": {
+      "1D": {
+        "AAL": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/AAL/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "ALK": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/ALK/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CAR": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CAR/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CHRW": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CHRW/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ],
+        "CSX": [
+          {
+            "provider": "alpaca",
+            "timeframe": "1D",
+            "start": "2020-10-08",
+            "end": "2025-10-08",
+            "path": "alpaca/CSX/1D/2020-10-08__2025-10-08.parquet"
+          }
+        ]
+      }
+    },
+    "latest_training": {
+      "train_start": "2020-10-08",
+      "train_end": "2024-10-06",
+      "holdout_start": "2024-10-07",
+      "holdout_end": "2025-10-06",
+      "train_fraction": 0.8,
+      "test_fraction": 0.2,
+      "train_share_pct": 80.0,
+      "test_share_pct": 20.0,
+      "train_days": 1460,
+      "test_days": 365,
+      "coverage_start": "2020-10-08",
+      "coverage_end": "2025-10-06",
+      "coverage_days": 1825,
+      "data_cache_root": "storage/data/ohlcv",
+      "ea_log_file": "storage/logs/ea/20251009_070902_ea.jsonl",
+      "updated_at": "2025-10-09T14:09:17.507377+00:00"
+    }
+  },
+  "saved_at": "2025-10-09T14:09:17.508480+00:00"
+}
